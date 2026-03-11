@@ -1,0 +1,88 @@
+import { auth } from "@/auth";
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import { handleSignOut } from "../actions";
+
+export default async function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const session = await auth();
+  if (!session) redirect("/");
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <nav className="border-b border-gray-200 bg-white shadow-sm">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
+            <div className="flex items-center gap-8">
+              <Link href="/dashboard" className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600">
+                  <svg
+                    className="h-4 w-4 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                    />
+                  </svg>
+                </div>
+                <span className="text-lg font-bold text-gray-900">공공데이터 대시보드</span>
+              </Link>
+              <div className="hidden items-center gap-1 sm:flex">
+                <NavLink href="/dashboard/air-quality">🌫️ 대기질</NavLink>
+                <NavLink href="/dashboard/weather">🌤️ 날씨</NavLink>
+                <NavLink href="/dashboard/transit">🚌 교통</NavLink>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <span className="hidden text-sm text-gray-500 sm:block">
+                {session.user?.email}
+              </span>
+              <form action={handleSignOut}>
+                <button
+                  type="submit"
+                  className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-600 transition hover:bg-gray-100"
+                >
+                  로그아웃
+                </button>
+              </form>
+            </div>
+          </div>
+          {/* 모바일 메뉴 */}
+          <div className="flex gap-1 pb-2 sm:hidden">
+            <NavLink href="/dashboard/air-quality">🌫️ 대기질</NavLink>
+            <NavLink href="/dashboard/weather">🌤️ 날씨</NavLink>
+            <NavLink href="/dashboard/transit">🚌 교통</NavLink>
+          </div>
+        </div>
+      </nav>
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {children}
+      </main>
+    </div>
+  );
+}
+
+function NavLink({
+  href,
+  children,
+}: {
+  href: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      className="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-100 hover:text-gray-900"
+    >
+      {children}
+    </Link>
+  );
+}
