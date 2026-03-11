@@ -7,7 +7,7 @@ export function useAirQuality(city: string = "서울") {
   const { data, error, isLoading } = useSWR(
     `/api/air-quality?city=${encodeURIComponent(city)}`,
     fetcher,
-    { refreshInterval: 300000 } // 5분
+    { refreshInterval: 300000, revalidateOnFocus: false } // 5분
   );
 
   const items: AirQualityItem[] = data?.response?.body?.items ?? [];
