@@ -6,6 +6,10 @@
  *   TURSO_DATABASE_URL
  *   TURSO_AUTH_TOKEN
  */
+import { config } from "dotenv";
+import { resolve } from "path";
+config({ path: resolve(process.cwd(), ".env.local") });
+
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import { allowedUsers } from "../lib/schema";
