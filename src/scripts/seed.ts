@@ -48,6 +48,7 @@ async function seed() {
   // 허용 사용자 추가
   const usersToSeed = [
     { email: "kts123@kookmin.ac.kr", name: "관리자", addedBy: "system" },
+    { email: "fastkjn1@gmail.com", name: "관리자2", addedBy: "system" },
   ];
 
   for (const user of usersToSeed) {
