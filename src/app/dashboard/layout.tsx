@@ -12,13 +12,27 @@ export default async function DashboardLayout({
   if (!session) redirect("/");
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="border-b border-gray-200 bg-white shadow-sm">
+    <div className="min-h-screen" style={{ background: "#0f0f1a" }}>
+      <nav
+        style={{
+          background: "rgba(15,15,26,0.8)",
+          backdropFilter: "blur(24px)",
+          WebkitBackdropFilter: "blur(24px)",
+          borderBottom: "1px solid rgba(255,255,255,0.1)",
+        }}
+        className="sticky top-0 z-50"
+      >
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-8">
-              <Link href="/dashboard" className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600">
+              <Link href="/dashboard" className="flex items-center gap-2 transition-opacity duration-200 hover:opacity-80">
+                <div
+                  className="flex h-8 w-8 items-center justify-center rounded-lg"
+                  style={{
+                    background: "linear-gradient(135deg, #6366f1 0%, #3b82f6 100%)",
+                    boxShadow: "0 4px 12px rgba(99,102,241,0.3)",
+                  }}
+                >
                   <svg
                     className="h-4 w-4 text-white"
                     fill="none"
@@ -33,7 +47,17 @@ export default async function DashboardLayout({
                     />
                   </svg>
                 </div>
-                <span className="text-lg font-bold text-gray-900">공공데이터 대시보드</span>
+                <span
+                  className="text-lg font-bold"
+                  style={{
+                    background: "linear-gradient(135deg, #a5b4fc 0%, #60a5fa 100%)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    backgroundClip: "text",
+                  }}
+                >
+                  공공데이터 대시보드
+                </span>
               </Link>
               {/* 데스크탑/태블릿 상단 네비게이션 */}
               <div className="hidden items-center gap-1 sm:flex">
@@ -43,7 +67,7 @@ export default async function DashboardLayout({
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <span className="hidden text-sm text-gray-500 sm:block">
+              <span className="hidden text-sm sm:block" style={{ color: "#64748b" }}>
                 {session.user?.email}
               </span>
               <LogoutButton />
@@ -56,7 +80,15 @@ export default async function DashboardLayout({
       </main>
 
       {/* 모바일 하단 탭 네비게이션 */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white sm:hidden">
+      <nav
+        className="fixed bottom-0 left-0 right-0 z-50 sm:hidden"
+        style={{
+          background: "rgba(15,15,26,0.9)",
+          backdropFilter: "blur(24px)",
+          WebkitBackdropFilter: "blur(24px)",
+          borderTop: "1px solid rgba(255,255,255,0.1)",
+        }}
+      >
         <div className="flex h-16 items-center justify-around">
           <BottomNavLink href="/dashboard/air-quality" emoji="🌫️" label="대기질" />
           <BottomNavLink href="/dashboard/weather" emoji="🌤️" label="날씨" />
@@ -77,7 +109,18 @@ function NavLink({
   return (
     <Link
       href={href}
-      className="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-100 hover:text-gray-900"
+      className="rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200 whitespace-nowrap"
+      style={{ color: "#94a3b8" }}
+      onMouseEnter={(e) => {
+        const el = e.currentTarget as HTMLAnchorElement;
+        el.style.background = "rgba(255,255,255,0.08)";
+        el.style.color = "#a5b4fc";
+      }}
+      onMouseLeave={(e) => {
+        const el = e.currentTarget as HTMLAnchorElement;
+        el.style.background = "transparent";
+        el.style.color = "#94a3b8";
+      }}
     >
       {children}
     </Link>
@@ -96,7 +139,14 @@ function BottomNavLink({
   return (
     <Link
       href={href}
-      className="flex flex-col items-center gap-1 px-4 py-2 text-gray-600 transition hover:text-blue-600"
+      className="flex flex-col items-center gap-1 px-4 py-2 transition-all duration-200 whitespace-nowrap"
+      style={{ color: "#64748b" }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLAnchorElement).style.color = "#a5b4fc";
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLAnchorElement).style.color = "#64748b";
+      }}
     >
       <span className="text-2xl">{emoji}</span>
       <span className="text-xs font-medium">{label}</span>

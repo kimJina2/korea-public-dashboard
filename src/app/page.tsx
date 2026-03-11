@@ -7,11 +7,64 @@ export default async function Home() {
   if (session) redirect("/dashboard");
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl sm:p-10">
+    <div
+      className="flex min-h-screen flex-col items-center justify-center px-4"
+      style={{
+        background: "#0f0f1a",
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
+      {/* 배경 글로우 효과 */}
+      <div
+        style={{
+          position: "absolute",
+          top: "20%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          width: "600px",
+          height: "600px",
+          background:
+            "radial-gradient(circle, rgba(99,102,241,0.15) 0%, rgba(59,130,246,0.08) 50%, transparent 70%)",
+          pointerEvents: "none",
+        }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          bottom: "10%",
+          right: "10%",
+          width: "300px",
+          height: "300px",
+          background:
+            "radial-gradient(circle, rgba(16,185,129,0.08) 0%, transparent 70%)",
+          pointerEvents: "none",
+        }}
+      />
+
+      <div
+        className="w-full max-w-md rounded-2xl border p-6 sm:p-10"
+        style={{
+          background: "rgba(255,255,255,0.05)",
+          backdropFilter: "blur(24px)",
+          WebkitBackdropFilter: "blur(24px)",
+          borderColor: "rgba(255,255,255,0.1)",
+          boxShadow:
+            "0 25px 50px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05)",
+          position: "relative",
+          zIndex: 1,
+        }}
+      >
         <div className="mb-8 text-center">
           <div className="mb-4 flex justify-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-600">
+            <div
+              className="flex h-16 w-16 items-center justify-center rounded-full"
+              style={{
+                background:
+                  "linear-gradient(135deg, #6366f1 0%, #3b82f6 100%)",
+                boxShadow: "0 8px 32px rgba(99,102,241,0.4)",
+              }}
+            >
               <svg
                 className="h-8 w-8 text-white"
                 fill="none"
@@ -27,15 +80,33 @@ export default async function Home() {
               </svg>
             </div>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">공공데이터 대시보드</h1>
-          <p className="mt-2 text-sm text-gray-500">
+          <h1
+            className="text-3xl font-bold"
+            style={{
+              background: "linear-gradient(135deg, #a5b4fc 0%, #60a5fa 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+            }}
+          >
+            공공데이터 대시보드
+          </h1>
+          <p className="mt-2 text-sm" style={{ color: "#94a3b8" }}>
             한국 공공 데이터 기반 실시간 정보 서비스
           </p>
         </div>
 
-        <div className="mb-6 rounded-lg bg-blue-50 p-4">
-          <p className="text-sm font-semibold text-blue-800">제공 정보</p>
-          <ul className="mt-2 space-y-1 text-sm text-blue-700">
+        <div
+          className="mb-6 rounded-xl p-4"
+          style={{
+            background: "rgba(99,102,241,0.1)",
+            border: "1px solid rgba(99,102,241,0.2)",
+          }}
+        >
+          <p className="text-sm font-semibold" style={{ color: "#a5b4fc" }}>
+            제공 정보
+          </p>
+          <ul className="mt-2 space-y-1 text-sm" style={{ color: "#94a3b8" }}>
             <li>🌫️ 전국 대기질 (PM10, PM2.5, AQI)</li>
             <li>🌤️ 지역별 날씨 예보</li>
             <li>🚌 시내버스 노선 정보</li>
@@ -45,9 +116,9 @@ export default async function Home() {
         <form action={handleSignIn}>
           <button
             type="submit"
-            className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-lg transition-all duration-200 hover:scale-[1.02] hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 active:scale-95 whitespace-nowrap"
           >
-            <svg className="h-5 w-5" viewBox="0 0 24 24">
+            <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24">
               <path
                 fill="#4285F4"
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -69,7 +140,7 @@ export default async function Home() {
           </button>
         </form>
 
-        <p className="mt-4 text-center text-xs text-gray-400">
+        <p className="mt-4 text-center text-xs" style={{ color: "#64748b" }}>
           허가된 계정만 접근할 수 있습니다
         </p>
       </div>
