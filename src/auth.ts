@@ -7,13 +7,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     Google({
       authorization: {
         params: {
-          prompt: "select_account",
+          prompt: "login",
         },
       },
     }),
   ],
   session: {
-    maxAge: 8 * 60 * 60, // 8시간
+    maxAge: 20 * 60, // 20분
   },
   callbacks: {
     async signIn({ user }) {
