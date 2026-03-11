@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { handleSignOut } from "../actions";
+import { LogoutButton } from "./logout-button";
 
 export default async function DashboardLayout({
   children,
@@ -45,14 +45,7 @@ export default async function DashboardLayout({
               <span className="hidden text-sm text-gray-500 sm:block">
                 {session.user?.email}
               </span>
-              <form action={handleSignOut}>
-                <button
-                  type="submit"
-                  className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-600 transition hover:bg-gray-100"
-                >
-                  로그아웃
-                </button>
-              </form>
+              <LogoutButton />
             </div>
           </div>
           {/* 모바일 메뉴 */}
