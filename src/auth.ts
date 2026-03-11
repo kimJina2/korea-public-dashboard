@@ -3,7 +3,18 @@ import Google from "next-auth/providers/google";
 import { isEmailAllowed } from "@/lib/allowed-users";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  providers: [Google],
+  providers: [
+    Google({
+      authorization: {
+        params: {
+          prompt: "select_account",
+        },
+      },
+    }),
+  ],
+  session: {
+    maxAge: 8 * 60 * 60, // 8시간
+  },
   callbacks: {
     async signIn({ user }) {
       if (!user.email) return false;
