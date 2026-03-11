@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
   try {
     const res = await fetch(
       `http://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getCtprvnRltmMesureDnsty?${params}`,
-      { next: { revalidate: 300 } }
+      { cache: "no-store" }
     );
     const data = await res.json();
     return NextResponse.json(data);

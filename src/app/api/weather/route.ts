@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
   try {
     const res = await fetch(
       `http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst?${params}`,
-      { next: { revalidate: 3600 } }
+      { cache: "no-store" }
     );
     const data = await res.json();
     return NextResponse.json(data);
