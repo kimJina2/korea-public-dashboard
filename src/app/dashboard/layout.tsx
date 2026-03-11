@@ -35,6 +35,7 @@ export default async function DashboardLayout({
                 </div>
                 <span className="text-lg font-bold text-gray-900">공공데이터 대시보드</span>
               </Link>
+              {/* 데스크탑/태블릿 상단 네비게이션 */}
               <div className="hidden items-center gap-1 sm:flex">
                 <NavLink href="/dashboard/air-quality">🌫️ 대기질</NavLink>
                 <NavLink href="/dashboard/weather">🌤️ 날씨</NavLink>
@@ -48,17 +49,20 @@ export default async function DashboardLayout({
               <LogoutButton />
             </div>
           </div>
-          {/* 모바일 메뉴 */}
-          <div className="flex gap-1 pb-2 sm:hidden">
-            <NavLink href="/dashboard/air-quality">🌫️ 대기질</NavLink>
-            <NavLink href="/dashboard/weather">🌤️ 날씨</NavLink>
-            <NavLink href="/dashboard/transit">🚌 교통</NavLink>
-          </div>
         </div>
       </nav>
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <main className="mx-auto max-w-7xl px-4 py-8 pb-24 sm:px-6 sm:pb-8 lg:px-8">
         {children}
       </main>
+
+      {/* 모바일 하단 탭 네비게이션 */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white sm:hidden">
+        <div className="flex h-16 items-center justify-around">
+          <BottomNavLink href="/dashboard/air-quality" emoji="🌫️" label="대기질" />
+          <BottomNavLink href="/dashboard/weather" emoji="🌤️" label="날씨" />
+          <BottomNavLink href="/dashboard/transit" emoji="🚌" label="교통" />
+        </div>
+      </nav>
     </div>
   );
 }
@@ -76,6 +80,26 @@ function NavLink({
       className="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-100 hover:text-gray-900"
     >
       {children}
+    </Link>
+  );
+}
+
+function BottomNavLink({
+  href,
+  emoji,
+  label,
+}: {
+  href: string;
+  emoji: string;
+  label: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex flex-col items-center gap-1 px-4 py-2 text-gray-600 transition hover:text-blue-600"
+    >
+      <span className="text-2xl">{emoji}</span>
+      <span className="text-xs font-medium">{label}</span>
     </Link>
   );
 }

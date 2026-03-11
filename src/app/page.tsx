@@ -7,8 +7,8 @@ export default async function Home() {
   if (session) redirect("/dashboard");
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="w-full max-w-md rounded-2xl bg-white p-10 shadow-xl">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl sm:p-10">
         <div className="mb-8 text-center">
           <div className="mb-4 flex justify-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-600">

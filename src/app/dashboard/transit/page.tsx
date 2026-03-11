@@ -56,8 +56,35 @@ export default function TransitPage() {
       </div>
 
       {isLoading && (
-        <div className="flex h-48 items-center justify-center">
-          <div className="text-gray-500">데이터를 불러오는 중...</div>
+        <div className="space-y-4">
+          {/* 테이블 스켈레톤 - 데스크탑 */}
+          <div className="hidden sm:block rounded-xl border border-gray-200 bg-white overflow-hidden">
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="flex gap-4 border-b border-gray-100 px-4 py-3">
+                <div className="h-4 w-16 animate-pulse rounded bg-gray-200" />
+                <div className="h-4 w-12 animate-pulse rounded bg-gray-100" />
+                <div className="h-4 w-28 animate-pulse rounded bg-gray-100" />
+                <div className="h-4 w-28 animate-pulse rounded bg-gray-100" />
+                <div className="h-4 w-14 animate-pulse rounded bg-gray-100" />
+                <div className="h-4 w-14 animate-pulse rounded bg-gray-100" />
+              </div>
+            ))}
+          </div>
+          {/* 카드 스켈레톤 - 모바일 */}
+          <div className="sm:hidden space-y-3">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="rounded-xl border border-gray-200 bg-white p-4">
+                <div className="mb-3 flex items-center justify-between">
+                  <div className="h-5 w-20 animate-pulse rounded bg-gray-200" />
+                  <div className="h-5 w-12 animate-pulse rounded-full bg-gray-100" />
+                </div>
+                <div className="space-y-2">
+                  <div className="h-4 w-40 animate-pulse rounded bg-gray-100" />
+                  <div className="h-4 w-32 animate-pulse rounded bg-gray-100" />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -69,7 +96,8 @@ export default function TransitPage() {
 
       {!isLoading && !error && items.length > 0 && (
         <>
-          <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+          {/* 테이블 - 데스크탑/태블릿 */}
+          <div className="hidden sm:block rounded-xl border border-gray-200 bg-white overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -104,6 +132,39 @@ export default function TransitPage() {
                 </tbody>
               </table>
             </div>
+          </div>
+
+          {/* 카드 리스트 - 모바일 */}
+          <div className="sm:hidden space-y-3">
+            {items.map((item, idx) => (
+              <div key={idx} className="rounded-xl border border-gray-200 bg-white p-4">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-base font-bold text-blue-700">{item.routeNo}</span>
+                  <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                    {ROUTE_TYPE[item.routeTp] ?? item.routeTp}
+                  </span>
+                </div>
+                <div className="mb-2 text-sm text-gray-700">
+                  <span className="text-gray-500">기점 </span>{item.startNodeNm}
+                  <span className="mx-1 text-gray-400">→</span>
+                  <span className="text-gray-500">종점 </span>{item.endNodeNm}
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-xs text-gray-600">
+                  <div>
+                    <span className="text-gray-400 block">첫차</span>
+                    <span className="font-medium">{item.startVehicleTime}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-400 block">막차</span>
+                    <span className="font-medium">{item.endVehicleTime}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-400 block">배차(첨두)</span>
+                    <span className="font-medium">{item.peakAlloc ? `${item.peakAlloc}분` : "-"}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
 
           {/* 페이지네이션 */}

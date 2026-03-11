@@ -61,8 +61,34 @@ export default function WeatherPage() {
       </div>
 
       {isLoading && (
-        <div className="flex h-48 items-center justify-center">
-          <div className="text-gray-500">데이터를 불러오는 중...</div>
+        <div className="space-y-4">
+          {/* 요약 카드 스켈레톤 */}
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="rounded-xl border border-gray-200 bg-white p-5">
+                <div className="mx-auto mb-2 h-8 w-8 animate-pulse rounded-full bg-gray-200" />
+                <div className="mx-auto mb-1 h-8 w-20 animate-pulse rounded bg-gray-200" />
+                <div className="mx-auto h-4 w-16 animate-pulse rounded bg-gray-100" />
+              </div>
+            ))}
+          </div>
+          {/* 차트 스켈레톤 */}
+          <div className="rounded-xl border border-gray-200 bg-white p-6">
+            <div className="mb-4 h-4 w-48 animate-pulse rounded bg-gray-200" />
+            <div className="h-[260px] animate-pulse rounded bg-gray-100" />
+          </div>
+          {/* 테이블 스켈레톤 */}
+          <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="flex gap-4 border-b border-gray-100 px-4 py-3">
+                <div className="h-4 w-20 animate-pulse rounded bg-gray-200" />
+                <div className="h-4 w-12 animate-pulse rounded bg-gray-100" />
+                <div className="h-4 w-12 animate-pulse rounded bg-gray-100" />
+                <div className="h-4 w-16 animate-pulse rounded bg-gray-100" />
+                <div className="h-4 w-16 animate-pulse rounded bg-gray-100" />
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -76,7 +102,7 @@ export default function WeatherPage() {
         <>
           {/* 현재 날씨 요약 */}
           {forecasts[0] && (
-            <div className="mb-6 grid gap-4 sm:grid-cols-4">
+            <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-center">
                 <div className="text-4xl">{getSkyEmoji(forecasts[0].sky, forecasts[0].pty)}</div>
                 <div className="mt-2 text-3xl font-bold text-amber-700">{forecasts[0].temp}°C</div>
@@ -138,8 +164,8 @@ export default function WeatherPage() {
             </ResponsiveContainer>
           </div>
 
-          {/* 예보 테이블 */}
-          <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+          {/* 예보 테이블 - 데스크탑/태블릿 */}
+          <div className="hidden sm:block rounded-xl border border-gray-200 bg-white overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -173,6 +199,41 @@ export default function WeatherPage() {
                 </tbody>
               </table>
             </div>
+          </div>
+
+          {/* 예보 카드 리스트 - 모바일 */}
+          <div className="sm:hidden space-y-3">
+            {forecasts.map((f, idx) => (
+              <div key={idx} className="rounded-xl border border-gray-200 bg-white p-4">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-sm font-semibold text-gray-700">
+                    {f.date} {f.time}
+                  </span>
+                  <span className="text-lg">
+                    {getSkyEmoji(f.sky, f.pty)}
+                    <span className="ml-1 text-xs text-gray-500">{f.sky}</span>
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="flex items-center gap-1">
+                    <span className="text-gray-500">기온</span>
+                    <span className="font-medium text-amber-700">{f.temp}°C</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-gray-500">강수확률</span>
+                    <span className="font-medium text-blue-600">{f.pop}%</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-gray-500">습도</span>
+                    <span className="font-medium text-cyan-600">{f.humidity}%</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-gray-500">풍속</span>
+                    <span className="font-medium text-gray-700">{f.windSpeed} m/s</span>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </>
       )}
