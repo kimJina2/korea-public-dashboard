@@ -11,6 +11,17 @@ export const allowedUsers = sqliteTable("allowed_users", {
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
 });
 
+export const emailOtps = sqliteTable("email_otps", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  email: text("email").notNull(),
+  otp: text("otp").notNull(),
+  expiresAt: text("expires_at").notNull(),
+  used: integer("used", { mode: "boolean" }).notNull().default(false),
+  createdAt: text("created_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+});
+
 export const accessLog = sqliteTable("access_log", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   email: text("email").notNull(),
