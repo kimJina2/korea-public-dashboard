@@ -30,10 +30,10 @@ export default function AirQualityPage() {
     <div>
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: "#f1f5f9" }}>
+          <h1 className="text-2xl font-bold" style={{ color: "#1e293b" }}>
             🌫️ 대기질 정보
           </h1>
-          <p className="mt-1 text-sm" style={{ color: "#94a3b8" }}>
+          <p className="mt-1 text-sm" style={{ color: "#64748b" }}>
             한국환경공단 에어코리아 실시간 대기질 측정 데이터
           </p>
         </div>
@@ -42,11 +42,10 @@ export default function AirQualityPage() {
           onChange={(e) => setCity(e.target.value)}
           className="rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 whitespace-nowrap"
           style={{
-            background: "rgba(255,255,255,0.1)",
-            border: "1px solid rgba(255,255,255,0.2)",
-            color: "#f1f5f9",
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
+            background: "#ffffff",
+            border: "1px solid rgba(0,0,0,0.12)",
+            color: "#334155",
+            boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
           }}
         >
           {CITIES.map((c) => (
@@ -60,48 +59,38 @@ export default function AirQualityPage() {
           <div
             className="rounded-2xl border p-6"
             style={{
-              background: "rgba(255,255,255,0.05)",
-              borderColor: "rgba(255,255,255,0.1)",
+              background: "#ffffff",
+              borderColor: "rgba(0,0,0,0.07)",
+              boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
             }}
           >
             <div
               className="mb-4 h-4 w-40 animate-pulse rounded"
-              style={{ background: "rgba(255,255,255,0.1)" }}
+              style={{ background: "#e2e8f0" }}
             />
             <div
               className="h-[280px] animate-pulse rounded"
-              style={{ background: "rgba(255,255,255,0.05)" }}
+              style={{ background: "#f1f5f9" }}
             />
           </div>
           <div
             className="rounded-2xl border overflow-hidden"
             style={{
-              background: "rgba(255,255,255,0.05)",
-              borderColor: "rgba(255,255,255,0.1)",
+              background: "#ffffff",
+              borderColor: "rgba(0,0,0,0.07)",
+              boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
             }}
           >
             {[...Array(6)].map((_, i) => (
               <div
                 key={i}
                 className="flex gap-4 px-4 py-3"
-                style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}
+                style={{ borderBottom: "1px solid rgba(0,0,0,0.05)" }}
               >
-                <div
-                  className="h-4 w-24 animate-pulse rounded"
-                  style={{ background: "rgba(255,255,255,0.1)" }}
-                />
-                <div
-                  className="h-4 w-16 animate-pulse rounded"
-                  style={{ background: "rgba(255,255,255,0.07)" }}
-                />
-                <div
-                  className="h-4 w-16 animate-pulse rounded"
-                  style={{ background: "rgba(255,255,255,0.07)" }}
-                />
-                <div
-                  className="h-4 w-20 animate-pulse rounded"
-                  style={{ background: "rgba(255,255,255,0.07)" }}
-                />
+                <div className="h-4 w-24 animate-pulse rounded" style={{ background: "#e2e8f0" }} />
+                <div className="h-4 w-16 animate-pulse rounded" style={{ background: "#f1f5f9" }} />
+                <div className="h-4 w-16 animate-pulse rounded" style={{ background: "#f1f5f9" }} />
+                <div className="h-4 w-20 animate-pulse rounded" style={{ background: "#f1f5f9" }} />
               </div>
             ))}
           </div>
@@ -112,9 +101,9 @@ export default function AirQualityPage() {
         <div
           className="rounded-xl p-4 text-sm"
           style={{
-            background: "rgba(239,68,68,0.1)",
-            border: "1px solid rgba(239,68,68,0.3)",
-            color: "#f87171",
+            background: "rgba(239,68,68,0.06)",
+            border: "1px solid rgba(239,68,68,0.2)",
+            color: "#dc2626",
           }}
         >
           데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.
@@ -127,18 +116,17 @@ export default function AirQualityPage() {
           <div
             className="mb-6 rounded-2xl border p-6"
             style={{
-              background: "rgba(255,255,255,0.05)",
-              borderColor: "rgba(255,255,255,0.1)",
-              backdropFilter: "blur(12px)",
-              WebkitBackdropFilter: "blur(12px)",
+              background: "#ffffff",
+              borderColor: "rgba(0,0,0,0.07)",
+              boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
             }}
           >
-            <h2 className="mb-4 text-sm font-semibold" style={{ color: "#94a3b8" }}>
+            <h2 className="mb-4 text-sm font-semibold" style={{ color: "#64748b" }}>
               측정소별 미세먼지 농도 (μg/m³)
             </h2>
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
                 <XAxis
                   dataKey="name"
                   tick={{ fontSize: 11, fill: "#94a3b8" }}
@@ -146,26 +134,25 @@ export default function AirQualityPage() {
                   angle={-30}
                   textAnchor="end"
                   height={50}
-                  axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
-                  tickLine={{ stroke: "rgba(255,255,255,0.1)" }}
+                  axisLine={{ stroke: "rgba(0,0,0,0.1)" }}
+                  tickLine={{ stroke: "rgba(0,0,0,0.1)" }}
                 />
                 <YAxis
                   tick={{ fontSize: 11, fill: "#94a3b8" }}
-                  axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
-                  tickLine={{ stroke: "rgba(255,255,255,0.1)" }}
+                  axisLine={{ stroke: "rgba(0,0,0,0.1)" }}
+                  tickLine={{ stroke: "rgba(0,0,0,0.1)" }}
                 />
                 <Tooltip
                   contentStyle={{
-                    background: "#1e1e2e",
-                    border: "1px solid rgba(255,255,255,0.1)",
+                    background: "#ffffff",
+                    border: "1px solid rgba(0,0,0,0.1)",
                     borderRadius: "12px",
-                    color: "#f1f5f9",
+                    color: "#1e293b",
+                    boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
                   }}
                 />
-                <Legend
-                  wrapperStyle={{ color: "#94a3b8" }}
-                />
-                <Bar dataKey="PM10" fill="#60a5fa" name="PM10" radius={[4, 4, 0, 0]} />
+                <Legend wrapperStyle={{ color: "#64748b" }} />
+                <Bar dataKey="PM10" fill="#3b82f6" name="PM10" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="PM2.5" fill="#f97316" name="PM2.5" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -175,22 +162,21 @@ export default function AirQualityPage() {
           <div
             className="rounded-2xl border overflow-hidden"
             style={{
-              background: "rgba(255,255,255,0.05)",
-              borderColor: "rgba(255,255,255,0.1)",
-              backdropFilter: "blur(12px)",
-              WebkitBackdropFilter: "blur(12px)",
+              background: "#ffffff",
+              borderColor: "rgba(0,0,0,0.07)",
+              boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
             }}
           >
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.03)" }}>
-                    <th className="px-4 py-3 text-left font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#94a3b8" }}>측정소</th>
-                    <th className="px-4 py-3 text-center font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#94a3b8" }}>PM10</th>
-                    <th className="px-4 py-3 text-center font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#94a3b8" }}>PM2.5</th>
-                    <th className="px-4 py-3 text-center font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#94a3b8" }}>통합대기환경지수</th>
-                    <th className="px-4 py-3 text-center font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#94a3b8" }}>등급</th>
-                    <th className="px-4 py-3 text-center font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#94a3b8" }}>측정시각</th>
+                  <tr style={{ borderBottom: "1px solid rgba(0,0,0,0.07)", background: "#f8fafc" }}>
+                    <th className="px-4 py-3 text-left font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>측정소</th>
+                    <th className="px-4 py-3 text-center font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>PM10</th>
+                    <th className="px-4 py-3 text-center font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>PM2.5</th>
+                    <th className="px-4 py-3 text-center font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>통합대기환경지수</th>
+                    <th className="px-4 py-3 text-center font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>등급</th>
+                    <th className="px-4 py-3 text-center font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>측정시각</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -200,24 +186,24 @@ export default function AirQualityPage() {
                       <tr
                         key={idx}
                         className="transition-colors duration-200"
-                        style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}
+                        style={{ borderBottom: "1px solid rgba(0,0,0,0.04)" }}
                         onMouseEnter={(e) => {
-                          (e.currentTarget as HTMLTableRowElement).style.background = "rgba(255,255,255,0.04)";
+                          (e.currentTarget as HTMLTableRowElement).style.background = "#f8fafc";
                         }}
                         onMouseLeave={(e) => {
                           (e.currentTarget as HTMLTableRowElement).style.background = "transparent";
                         }}
                       >
-                        <td className="px-4 py-3 font-medium whitespace-nowrap" style={{ color: "#f1f5f9" }}>
+                        <td className="px-4 py-3 font-medium whitespace-nowrap" style={{ color: "#1e293b" }}>
                           {item.stationName}
                         </td>
-                        <td className="px-4 py-3 text-center whitespace-nowrap" style={{ color: "#cbd5e1" }}>
+                        <td className="px-4 py-3 text-center whitespace-nowrap" style={{ color: "#475569" }}>
                           {item.pm10Value ?? "-"} μg/m³
                         </td>
-                        <td className="px-4 py-3 text-center whitespace-nowrap" style={{ color: "#cbd5e1" }}>
+                        <td className="px-4 py-3 text-center whitespace-nowrap" style={{ color: "#475569" }}>
                           {item.pm25Value ?? "-"} μg/m³
                         </td>
-                        <td className="px-4 py-3 text-center whitespace-nowrap" style={{ color: "#cbd5e1" }}>
+                        <td className="px-4 py-3 text-center whitespace-nowrap" style={{ color: "#475569" }}>
                           {item.khaiValue ?? "-"}
                         </td>
                         <td className="px-4 py-3 text-center whitespace-nowrap">
@@ -227,7 +213,7 @@ export default function AirQualityPage() {
                             {grade.label}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-center text-xs whitespace-nowrap" style={{ color: "#64748b" }}>
+                        <td className="px-4 py-3 text-center text-xs whitespace-nowrap" style={{ color: "#94a3b8" }}>
                           {item.dataTime}
                         </td>
                       </tr>
@@ -244,9 +230,9 @@ export default function AirQualityPage() {
         <div
           className="rounded-xl p-8 text-center text-sm"
           style={{
-            background: "rgba(255,255,255,0.03)",
-            border: "1px solid rgba(255,255,255,0.08)",
-            color: "#64748b",
+            background: "#f8fafc",
+            border: "1px solid rgba(0,0,0,0.07)",
+            color: "#94a3b8",
           }}
         >
           해당 지역의 측정 데이터가 없습니다.

@@ -74,6 +74,8 @@ src/
 │   ├── actions.ts                # Server Actions (로그인/로그아웃)
 │   ├── dashboard/
 │   │   ├── layout.tsx            # 대시보드 레이아웃 (네비게이션)
+│   │   ├── nav-links.tsx         # 네비게이션 링크 (클라이언트 컴포넌트)
+│   │   ├── logout-button.tsx     # 로그아웃 버튼 (클라이언트 컴포넌트)
 │   │   ├── page.tsx              # 대시보드 홈
 │   │   ├── air-quality/page.tsx  # 대기질 페이지
 │   │   ├── weather/page.tsx      # 날씨 페이지
@@ -84,7 +86,7 @@ src/
 │   │   └── transit/route.ts      # 교통 API
 │   └── auth/[...nextauth]/       # NextAuth 핸들러
 ├── auth.ts                       # NextAuth 설정
-├── middleware.ts                  # 라우트 보호
+├── proxy.ts                       # 라우트 보호 (Next.js 미들웨어)
 ├── lib/
 │   ├── db.ts                     # Drizzle DB 클라이언트
 │   ├── schema.ts                 # DB 스키마 (allowed_users, access_log)

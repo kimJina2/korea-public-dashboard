@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { LogoutButton } from "./logout-button";
+import { NavLink, BottomNavLink } from "./nav-links";
 
 export default async function DashboardLayout({
   children,
@@ -12,13 +13,14 @@ export default async function DashboardLayout({
   if (!session) redirect("/");
 
   return (
-    <div className="min-h-screen" style={{ background: "#0f0f1a" }}>
+    <div className="min-h-screen" style={{ background: "#f8fafc" }}>
       <nav
         style={{
-          background: "rgba(15,15,26,0.8)",
+          background: "rgba(255,255,255,0.9)",
           backdropFilter: "blur(24px)",
           WebkitBackdropFilter: "blur(24px)",
-          borderBottom: "1px solid rgba(255,255,255,0.1)",
+          borderBottom: "1px solid rgba(0,0,0,0.08)",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
         }}
         className="sticky top-0 z-50"
       >
@@ -30,7 +32,7 @@ export default async function DashboardLayout({
                   className="flex h-8 w-8 items-center justify-center rounded-lg"
                   style={{
                     background: "linear-gradient(135deg, #6366f1 0%, #3b82f6 100%)",
-                    boxShadow: "0 4px 12px rgba(99,102,241,0.3)",
+                    boxShadow: "0 4px 12px rgba(99,102,241,0.25)",
                   }}
                 >
                   <svg
@@ -50,7 +52,7 @@ export default async function DashboardLayout({
                 <span
                   className="text-lg font-bold"
                   style={{
-                    background: "linear-gradient(135deg, #a5b4fc 0%, #60a5fa 100%)",
+                    background: "linear-gradient(135deg, #6366f1 0%, #3b82f6 100%)",
                     WebkitBackgroundClip: "text",
                     WebkitTextFillColor: "transparent",
                     backgroundClip: "text",
@@ -67,7 +69,7 @@ export default async function DashboardLayout({
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <span className="hidden text-sm sm:block" style={{ color: "#64748b" }}>
+              <span className="hidden text-sm sm:block" style={{ color: "#94a3b8" }}>
                 {session.user?.email}
               </span>
               <LogoutButton />
@@ -83,10 +85,11 @@ export default async function DashboardLayout({
       <nav
         className="fixed bottom-0 left-0 right-0 z-50 sm:hidden"
         style={{
-          background: "rgba(15,15,26,0.9)",
+          background: "rgba(255,255,255,0.95)",
           backdropFilter: "blur(24px)",
           WebkitBackdropFilter: "blur(24px)",
-          borderTop: "1px solid rgba(255,255,255,0.1)",
+          borderTop: "1px solid rgba(0,0,0,0.08)",
+          boxShadow: "0 -1px 3px rgba(0,0,0,0.04)",
         }}
       >
         <div className="flex h-16 items-center justify-around">
@@ -96,60 +99,5 @@ export default async function DashboardLayout({
         </div>
       </nav>
     </div>
-  );
-}
-
-function NavLink({
-  href,
-  children,
-}: {
-  href: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      className="rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200 whitespace-nowrap"
-      style={{ color: "#94a3b8" }}
-      onMouseEnter={(e) => {
-        const el = e.currentTarget as HTMLAnchorElement;
-        el.style.background = "rgba(255,255,255,0.08)";
-        el.style.color = "#a5b4fc";
-      }}
-      onMouseLeave={(e) => {
-        const el = e.currentTarget as HTMLAnchorElement;
-        el.style.background = "transparent";
-        el.style.color = "#94a3b8";
-      }}
-    >
-      {children}
-    </Link>
-  );
-}
-
-function BottomNavLink({
-  href,
-  emoji,
-  label,
-}: {
-  href: string;
-  emoji: string;
-  label: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="flex flex-col items-center gap-1 px-4 py-2 transition-all duration-200 whitespace-nowrap"
-      style={{ color: "#64748b" }}
-      onMouseEnter={(e) => {
-        (e.currentTarget as HTMLAnchorElement).style.color = "#a5b4fc";
-      }}
-      onMouseLeave={(e) => {
-        (e.currentTarget as HTMLAnchorElement).style.color = "#64748b";
-      }}
-    >
-      <span className="text-2xl">{emoji}</span>
-      <span className="text-xs font-medium">{label}</span>
-    </Link>
   );
 }
