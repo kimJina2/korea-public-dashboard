@@ -1,10 +1,16 @@
 import { db } from "./db";
 import { emailOtps } from "./schema";
 import { and, eq, gt } from "drizzle-orm";
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 
-function getResend() {
-  return new Resend(process.env.RESEND_API_KEY);
+function getTransport() {
+  return nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  });
 }
 
 export function generateCode(): string {
@@ -17,8 +23,8 @@ export async function createAndSendOtp(email: string): Promise<void> {
 
   await db.insert(emailOtps).values({ email, otp: code, expiresAt });
 
-  await getResend().emails.send({
-    from: "공공데이터 대시보드 <onboarding@resend.dev>",
+  await getTransport().sendMail({
+    from: `"공공데이터 대시보드" <${process.env.SMTP_USER}>`,
     to: email,
     subject: "[공공데이터 대시보드] 로그인 인증코드",
     html: `
