@@ -132,7 +132,7 @@ export function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="kts123@kookmin.ac.kr"
+                placeholder="이메일 입력"
                 required
                 className="w-full rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 style={{ background: "#f8fafc", border: "1px solid rgba(0,0,0,0.12)", color: "#1e293b" }}
