@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useTransit } from "@/hooks/use-transit";
 
-const CITIES = ["서울", "부산", "대구", "인천", "광주", "대전", "울산"];
+const CITIES = ["부산", "대구", "인천", "광주", "대전", "울산", "경기"];
 
 const ROUTE_TYPE: Record<string, string> = {
   "11": "간선",
@@ -19,7 +19,7 @@ const ROUTE_TYPE: Record<string, string> = {
 };
 
 export default function TransitPage() {
-  const [city, setCity] = useState("서울");
+  const [city, setCity] = useState("부산");
   const [page, setPage] = useState(1);
   const { items, totalCount, error, isLoading } = useTransit(city, page);
 
@@ -137,7 +137,6 @@ export default function TransitPage() {
                     <th className="px-4 py-3 text-left font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>종점</th>
                     <th className="px-4 py-3 text-center font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>첫차</th>
                     <th className="px-4 py-3 text-center font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>막차</th>
-                    <th className="px-4 py-3 text-center font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>배차(첨두)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -153,22 +152,19 @@ export default function TransitPage() {
                         (e.currentTarget as HTMLTableRowElement).style.background = "transparent";
                       }}
                     >
-                      <td className="px-4 py-3 font-semibold whitespace-nowrap" style={{ color: "#6366f1" }}>{item.routeNo}</td>
+                      <td className="px-4 py-3 font-semibold whitespace-nowrap" style={{ color: "#6366f1" }}>{item.routeno}</td>
                       <td className="px-4 py-3 text-center whitespace-nowrap">
                         <span
                           className="rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap"
                           style={{ background: "rgba(16,185,129,0.1)", color: "#059669" }}
                         >
-                          {ROUTE_TYPE[item.routeTp] ?? item.routeTp}
+                          {ROUTE_TYPE[item.routetp] ?? item.routetp}
                         </span>
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap" style={{ color: "#475569" }}>{item.startNodeNm}</td>
-                      <td className="px-4 py-3 whitespace-nowrap" style={{ color: "#475569" }}>{item.endNodeNm}</td>
-                      <td className="px-4 py-3 text-center whitespace-nowrap" style={{ color: "#64748b" }}>{item.startVehicleTime}</td>
-                      <td className="px-4 py-3 text-center whitespace-nowrap" style={{ color: "#64748b" }}>{item.endVehicleTime}</td>
-                      <td className="px-4 py-3 text-center whitespace-nowrap" style={{ color: "#64748b" }}>
-                        {item.peakAlloc ? `${item.peakAlloc}분` : "-"}
-                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap" style={{ color: "#475569" }}>{item.startnodenm}</td>
+                      <td className="px-4 py-3 whitespace-nowrap" style={{ color: "#475569" }}>{item.endnodenm}</td>
+                      <td className="px-4 py-3 text-center whitespace-nowrap" style={{ color: "#64748b" }}>{item.startvehicletime}</td>
+                      <td className="px-4 py-3 text-center whitespace-nowrap" style={{ color: "#64748b" }}>{item.endvehicletime}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -189,31 +185,27 @@ export default function TransitPage() {
                 }}
               >
                 <div className="mb-2 flex items-center justify-between">
-                  <span className="text-base font-bold" style={{ color: "#6366f1" }}>{item.routeNo}</span>
+                  <span className="text-base font-bold" style={{ color: "#6366f1" }}>{item.routeno}</span>
                   <span
                     className="rounded-full px-2 py-0.5 text-xs font-medium"
                     style={{ background: "rgba(16,185,129,0.1)", color: "#059669" }}
                   >
-                    {ROUTE_TYPE[item.routeTp] ?? item.routeTp}
+                    {ROUTE_TYPE[item.routetp] ?? item.routetp}
                   </span>
                 </div>
                 <div className="mb-2 text-sm" style={{ color: "#475569" }}>
-                  <span style={{ color: "#94a3b8" }}>기점 </span>{item.startNodeNm}
+                  <span style={{ color: "#94a3b8" }}>기점 </span>{item.startnodenm}
                   <span className="mx-1" style={{ color: "#cbd5e1" }}>→</span>
-                  <span style={{ color: "#94a3b8" }}>종점 </span>{item.endNodeNm}
+                  <span style={{ color: "#94a3b8" }}>종점 </span>{item.endnodenm}
                 </div>
-                <div className="grid grid-cols-3 gap-2 text-xs" style={{ color: "#64748b" }}>
+                <div className="grid grid-cols-2 gap-2 text-xs" style={{ color: "#64748b" }}>
                   <div>
                     <span className="block" style={{ color: "#94a3b8" }}>첫차</span>
-                    <span className="font-medium">{item.startVehicleTime}</span>
+                    <span className="font-medium">{item.startvehicletime}</span>
                   </div>
                   <div>
                     <span className="block" style={{ color: "#94a3b8" }}>막차</span>
-                    <span className="font-medium">{item.endVehicleTime}</span>
-                  </div>
-                  <div>
-                    <span className="block" style={{ color: "#94a3b8" }}>배차(첨두)</span>
-                    <span className="font-medium">{item.peakAlloc ? `${item.peakAlloc}분` : "-"}</span>
+                    <span className="font-medium">{item.endvehicletime}</span>
                   </div>
                 </div>
               </div>

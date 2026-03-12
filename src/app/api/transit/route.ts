@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const res = await fetch(
-      `http://apis.data.go.kr/1613000/BusRouteInfoInqireService/getRouteNoList?${params}`,
+      `https://apis.data.go.kr/1613000/BusRouteInfoInqireService/getRouteNoList?${params}`,
       { next: { revalidate: 3600 } }
     );
     const data = await res.json();
