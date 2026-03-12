@@ -9,8 +9,10 @@
    - 유형: 웹 애플리케이션
    - 승인된 리다이렉션 URI 추가:
      - 개발: `http://localhost:3000/api/auth/callback/google`
-     - 프로덕션: `https://your-app.vercel.app/api/auth/callback/google`
+     - 프로덕션: `https://korea-public-dashboard.vercel.app/api/auth/callback/google`
 5. Client ID와 Client Secret을 복사하여 환경 변수에 설정
+
+> **참고**: Google Workspace 계정(@kookmin.ac.kr 등)은 대학 SAML SSO로 인해 Google OAuth 로그인이 불가할 수 있습니다. 이 경우 이메일 OTP 로그인을 이용하세요.
 
 ## 2. Turso DB 설정
 
@@ -42,13 +44,24 @@ turso db tokens create korea-dashboard
 
 > 주의: API 키는 URL 인코딩되지 않은 원본 키를 사용해야 합니다.
 
-## 4. NextAuth SECRET 생성
+> 참고: 국토교통부 버스노선 API는 서울 데이터를 제공하지 않습니다. 부산·대구·인천·광주·대전·울산·경기 데이터만 지원됩니다.
+
+## 4. Gmail SMTP 설정 (이메일 OTP 로그인용)
+
+Google Workspace 계정 등 Google OAuth 우회가 필요한 사용자를 위한 이메일 인증코드 발송 설정입니다.
+
+1. [Google 계정 보안](https://myaccount.google.com/security) 접속
+2. **2단계 인증** 활성화
+3. **앱 비밀번호** 생성 (앱: 메일, 기기: 기타)
+4. 생성된 16자리 비밀번호를 `SMTP_PASS`에 설정
+
+## 5. NextAuth SECRET 생성
 
 ```bash
 openssl rand -base64 32
 ```
 
-## 5. .env.local 파일 예시
+## 6. .env.local 파일 예시
 
 ```env
 AUTH_SECRET=your_random_secret_here
@@ -59,9 +72,12 @@ TURSO_DATABASE_URL=libsql://korea-dashboard-username.turso.io
 TURSO_AUTH_TOKEN=eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9...
 
 DATA_GO_KR_API_KEY=your_decoded_api_key_here
+
+SMTP_USER=your_gmail@gmail.com
+SMTP_PASS=xxxx xxxx xxxx xxxx
 ```
 
-## 6. DB 초기화
+## 7. DB 초기화
 
 ```bash
 # 의존성 설치
@@ -71,12 +87,22 @@ npm install
 npm run db:seed
 ```
 
-## 7. Vercel 배포 설정
+`src/scripts/seed.ts`의 `usersToSeed` 배열에 허용할 이메일을 추가하세요.
+
+## 8. Vercel 배포 설정
 
 1. GitHub에 코드 푸시
 2. [Vercel](https://vercel.com) 로그인 후 새 프로젝트 생성
 3. GitHub 저장소 연결
-4. **Environment Variables** 탭에서 위 환경 변수 모두 추가
+4. **Environment Variables** 탭에서 위 환경 변수 모두 추가:
+   - `AUTH_SECRET`
+   - `AUTH_GOOGLE_ID`
+   - `AUTH_GOOGLE_SECRET`
+   - `TURSO_DATABASE_URL`
+   - `TURSO_AUTH_TOKEN`
+   - `DATA_GO_KR_API_KEY`
+   - `SMTP_USER`
+   - `SMTP_PASS`
 5. **Deploy** 클릭
 
-이후 `main` 브랜치 푸시 시 자동 배포됩니다.
+이후 `master` 브랜치 푸시 시 자동 배포됩니다.

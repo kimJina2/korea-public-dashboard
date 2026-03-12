@@ -4,6 +4,22 @@
 
 모든 API 엔드포인트는 인증된 세션이 필요합니다. 미인증 요청은 401을 반환합니다.
 
+### POST /api/auth/send-otp
+
+이메일 OTP 인증코드를 발송합니다.
+
+**요청 바디**
+```json
+{ "email": "user@example.com" }
+```
+
+**응답**
+- `200 OK`: 발송 성공
+- `403 Forbidden`: 허용되지 않은 이메일
+- `500 Internal Server Error`: 발송 실패
+
+---
+
 ### GET /api/air-quality
 
 시도별 실시간 대기질 측정 정보를 반환합니다.
@@ -86,11 +102,24 @@
 
 시내버스 노선 정보를 반환합니다.
 
+> 서울은 국토교통부 버스노선 API에서 지원되지 않습니다. 부산·대구·인천·광주·대전·울산·경기를 선택하세요.
+
 **쿼리 파라미터**
 | 파라미터 | 타입 | 기본값 | 설명 |
 |---------|------|-------|------|
-| city | string | 서울 | 도시명 (서울, 부산, 대구, 인천, 광주, 대전, 울산) |
+| city | string | 부산 | 도시명 (부산, 대구, 인천, 광주, 대전, 울산, 경기) |
 | page | number | 1 | 페이지 번호 (20개씩) |
+
+**도시 코드 매핑**
+| 도시 | cityCode |
+|------|---------|
+| 부산 | 21 |
+| 대구 | 22 |
+| 인천 | 23 |
+| 광주 | 24 |
+| 대전 | 25 |
+| 울산 | 26 |
+| 경기 | 31 |
 
 **응답 예시**
 ```json
@@ -100,19 +129,17 @@
       "items": {
         "item": [
           {
-            "routeId": "100100118",
-            "routeNo": "100",
-            "routeTp": "11",
-            "startNodeNm": "개화역",
-            "endNodeNm": "신촌오거리",
-            "startVehicleTime": "04:30",
-            "endVehicleTime": "23:00",
-            "peakAlloc": "7",
-            "nPeakAlloc": "10"
+            "routeid": "BSB5200002000",
+            "routeno": 2,
+            "routetp": "일반버스",
+            "startnodenm": "다대포",
+            "endnodenm": "부산역",
+            "startvehicletime": "0500",
+            "endvehicletime": 2215
           }
         ]
       },
-      "totalCount": 374,
+      "totalCount": 302,
       "numOfRows": 20,
       "pageNo": 1
     }
@@ -124,16 +151,17 @@
 
 ### 한국환경공단 에어코리아
 
-- **엔드포인트**: `http://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getCtprvnRltmMesureDnsty`
+- **엔드포인트**: `https://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getCtprvnRltmMesureDnsty`
 - **캐시**: 5분
 
 ### 기상청 단기예보
 
-- **엔드포인트**: `http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst`
+- **엔드포인트**: `https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst`
 - **발표 시각**: 02, 05, 08, 11, 14, 17, 20, 23시
 - **캐시**: 1시간
 
 ### 국토교통부 버스노선정보
 
-- **엔드포인트**: `http://apis.data.go.kr/1613000/BusRouteInfoInqireService/getRouteNoList`
+- **엔드포인트**: `https://apis.data.go.kr/1613000/BusRouteInfoInqireService/getRouteNoList`
 - **캐시**: 1시간
+- **참고**: HTTP가 아닌 HTTPS 엔드포인트 사용 필수
