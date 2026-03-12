@@ -1,3 +1,5 @@
+"use client";
+
 import { handleSignOut } from "@/app/actions";
 
 export function LogoutButton() {
