@@ -3,7 +3,9 @@ import { emailOtps } from "./schema";
 import { and, eq, gt } from "drizzle-orm";
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+function getResend() {
+  return new Resend(process.env.RESEND_API_KEY);
+}
 
 export function generateCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -15,7 +17,7 @@ export async function createAndSendOtp(email: string): Promise<void> {
 
   await db.insert(emailOtps).values({ email, otp: code, expiresAt });
 
-  await resend.emails.send({
+  await getResend().emails.send({
     from: "공공데이터 대시보드 <onboarding@resend.dev>",
     to: email,
     subject: "[공공데이터 대시보드] 로그인 인증코드",
