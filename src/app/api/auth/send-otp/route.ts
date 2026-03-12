@@ -19,7 +19,8 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true });
   } catch (e) {
-    console.error("OTP 전송 오류:", e);
-    return NextResponse.json({ error: "인증코드 전송에 실패했습니다." }, { status: 500 });
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("OTP 전송 오류:", msg);
+    return NextResponse.json({ error: "인증코드 전송에 실패했습니다.", detail: msg }, { status: 500 });
   }
 }
