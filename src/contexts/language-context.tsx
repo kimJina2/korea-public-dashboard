@@ -16,15 +16,18 @@ const LanguageContext = createContext<LanguageContextType>({
 });
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [lang, setLang] = useState<Lang>(() => {
-    if (typeof window === "undefined") return "ko";
-    const saved = localStorage.getItem("jina_lang");
-    if (saved && saved in translations) return saved as Lang;
-    return "ko";
-  });
+  // Always start with "ko" on both server and client to prevent hydration mismatch.
+  // The saved language is applied after hydration in the effect below.
+  const [lang, setLang] = useState<Lang>("ko");
 
   useEffect(() => {
-    // 프로필 API에서 서버 저장 값 로드
+    // 1. localStorage에서 즉시 적용
+    const saved = localStorage.getItem("jina_lang");
+    if (saved && saved in translations) {
+      setLang(saved as Lang);
+    }
+
+    // 2. 프로필 API에서 서버 저장 값 로드 (우선순위 높음)
     fetch("/api/profile")
       .then((r) => r.json())
       .then((data) => {
