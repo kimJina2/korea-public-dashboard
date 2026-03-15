@@ -44,3 +44,6 @@ text.md
 next-env.d.ts
 
 .vercel
+
+# YouTube downloaded videos (temporary)
+tmp_videos/
