@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useTransit } from "@/hooks/use-transit";
+import { useLanguage } from "@/contexts/language-context";
 
 const CITIES = ["부산", "대구", "인천", "광주", "대전", "울산", "경기"];
 
@@ -22,6 +23,7 @@ export default function TransitPage() {
   const [city, setCity] = useState("부산");
   const [page, setPage] = useState(1);
   const { items, totalCount, error, isLoading } = useTransit(city, page);
+  const { t } = useLanguage();
 
   const totalPages = Math.ceil(totalCount / 20);
 
@@ -35,13 +37,13 @@ export default function TransitPage() {
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: "#1e293b" }}>
-            🚌 버스 노선 정보
+            {t.transitPageTitle}
           </h1>
           <p className="mt-1 text-sm" style={{ color: "#64748b" }}>
-            국토교통부 버스노선 조회서비스
+            {t.transitSubtitle}
             {totalCount > 0 && (
               <span className="ml-2 font-medium" style={{ color: "#475569" }}>
-                (총 {totalCount.toLocaleString()}개 노선)
+                ({t.totalRoutes(totalCount)})
               </span>
             )}
           </p>
@@ -65,7 +67,6 @@ export default function TransitPage() {
 
       {isLoading && (
         <div className="space-y-4">
-          {/* 테이블 스켈레톤 - 데스크탑 */}
           <div
             className="hidden sm:block rounded-2xl border overflow-hidden"
             style={{ background: "#ffffff", borderColor: "rgba(0,0,0,0.07)", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
@@ -81,7 +82,6 @@ export default function TransitPage() {
               </div>
             ))}
           </div>
-          {/* 카드 스켈레톤 - 모바일 */}
           <div className="sm:hidden space-y-3">
             {[...Array(6)].map((_, i) => (
               <div
@@ -112,7 +112,7 @@ export default function TransitPage() {
             color: "#dc2626",
           }}
         >
-          데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.
+          {t.dataLoadError}
         </div>
       )}
 
@@ -131,12 +131,12 @@ export default function TransitPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr style={{ borderBottom: "1px solid rgba(0,0,0,0.07)", background: "#f8fafc" }}>
-                    <th className="px-4 py-3 text-left font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>노선번호</th>
-                    <th className="px-4 py-3 text-center font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>종류</th>
-                    <th className="px-4 py-3 text-left font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>기점</th>
-                    <th className="px-4 py-3 text-left font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>종점</th>
-                    <th className="px-4 py-3 text-center font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>첫차</th>
-                    <th className="px-4 py-3 text-center font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>막차</th>
+                    <th className="px-4 py-3 text-left font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>{t.routeNoHeader}</th>
+                    <th className="px-4 py-3 text-center font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>{t.routeTypeHeader}</th>
+                    <th className="px-4 py-3 text-left font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>{t.startStopHeader}</th>
+                    <th className="px-4 py-3 text-left font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>{t.endStopHeader}</th>
+                    <th className="px-4 py-3 text-center font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>{t.firstBusHeader}</th>
+                    <th className="px-4 py-3 text-center font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>{t.lastBusHeader}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -194,17 +194,17 @@ export default function TransitPage() {
                   </span>
                 </div>
                 <div className="mb-2 text-sm" style={{ color: "#475569" }}>
-                  <span style={{ color: "#94a3b8" }}>기점 </span>{item.startnodenm}
+                  <span style={{ color: "#94a3b8" }}>{t.startStopHeader} </span>{item.startnodenm}
                   <span className="mx-1" style={{ color: "#cbd5e1" }}>→</span>
-                  <span style={{ color: "#94a3b8" }}>종점 </span>{item.endnodenm}
+                  <span style={{ color: "#94a3b8" }}>{t.endStopHeader} </span>{item.endnodenm}
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-xs" style={{ color: "#64748b" }}>
                   <div>
-                    <span className="block" style={{ color: "#94a3b8" }}>첫차</span>
+                    <span className="block" style={{ color: "#94a3b8" }}>{t.firstBusHeader}</span>
                     <span className="font-medium">{item.startvehicletime}</span>
                   </div>
                   <div>
-                    <span className="block" style={{ color: "#94a3b8" }}>막차</span>
+                    <span className="block" style={{ color: "#94a3b8" }}>{t.lastBusHeader}</span>
                     <span className="font-medium">{item.endvehicletime}</span>
                   </div>
                 </div>
@@ -226,7 +226,7 @@ export default function TransitPage() {
                   boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
                 }}
               >
-                이전
+                {t.prevPage}
               </button>
               <span className="text-sm px-2" style={{ color: "#64748b" }}>
                 {page} / {totalPages}
@@ -242,7 +242,7 @@ export default function TransitPage() {
                   boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
                 }}
               >
-                다음
+                {t.nextPage}
               </button>
             </div>
           )}
@@ -258,7 +258,7 @@ export default function TransitPage() {
             color: "#94a3b8",
           }}
         >
-          해당 지역의 버스 노선 데이터가 없습니다.
+          {t.noTransitData}
         </div>
       )}
     </div>
