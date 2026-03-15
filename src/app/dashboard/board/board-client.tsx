@@ -1302,17 +1302,17 @@ export function BoardClient({ currentUser }: { currentUser: CurrentUser }) {
             </svg>
           </div>
           <span className="text-sm font-bold" style={{ background: "linear-gradient(135deg, #6366f1 0%, #3b82f6 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-            JINA 공공데이터 대시보드
+            {t.boardSidebarTitle}
           </span>
         </div>
         <p className="text-xs mb-3 leading-relaxed" style={{ color: "#475569" }}>
-          한국 공공데이터포털(apis.data.go.kr) API 기반 실시간 정보 서비스입니다.
+          {t.boardSidebarDesc}
         </p>
         <div className="grid gap-2 sm:grid-cols-3 mb-4">
           {[
-            { emoji: "🌫️", title: "대기질", desc: "한국환경공단 에어코리아", color: "#3b82f6" },
-            { emoji: "🌤️", title: "날씨", desc: "기상청 단기예보", color: "#d97706" },
-            { emoji: "🚌", title: "버스노선", desc: "국토교통부", color: "#059669" },
+            { emoji: "🌫️", title: t.airQuality, desc: t.dataSourceAirShort, color: "#3b82f6" },
+            { emoji: "🌤️", title: t.weather, desc: t.dataSourceWeatherShort, color: "#d97706" },
+            { emoji: "🚌", title: t.transit, desc: t.dataSourceTransitShort, color: "#059669" },
           ].map((s) => (
             <div
               key={s.title}
@@ -1338,7 +1338,7 @@ export function BoardClient({ currentUser }: { currentUser: CurrentUser }) {
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
           </svg>
-          문의하기
+          {t.contactUs}
         </button>
       </div>
 
