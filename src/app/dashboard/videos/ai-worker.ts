@@ -1,18 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import {
-  AutoProcessor,
-  AutoModelForVision2Seq,
-  RawImage,
-  TextStreamer,
-} from "@huggingface/transformers";
+import { pipeline, TextStreamer, RawImage } from "@huggingface/transformers";
 
-const MODEL_ID = "onnx-community/Qwen3.5-0.8B-ONNX";
+const MODEL_ID = "onnx-community/SmolVLM-500M-Instruct";
 
-// self is DedicatedWorkerGlobalScope at runtime; cast to any to avoid dom/webworker lib conflicts
 const ctx = self as any;
-
-let processor: any = null;
-let model: any = null;
+let pipe: any = null;
 
 ctx.addEventListener("message", async (event: MessageEvent) => {
   const { type, imageDataUrl, prompt, maxTokens } = event.data as {
@@ -24,20 +16,16 @@ ctx.addEventListener("message", async (event: MessageEvent) => {
 
   if (type === "load") {
     try {
-      ctx.postMessage({ type: "status", message: "프로세서 로딩 중..." });
-
-      processor = await AutoProcessor.from_pretrained(MODEL_ID);
-
       ctx.postMessage({ type: "status", message: "모델 다운로드 중... (~500MB, 최초 1회)" });
 
-      model = await (AutoModelForVision2Seq as any).from_pretrained(MODEL_ID, {
+      pipe = await (pipeline as any)("image-text-to-text", MODEL_ID, {
         dtype: {
           embed_tokens: "q4",
           vision_encoder: "fp16",
           decoder_model_merged: "q4",
         },
         device: "webgpu",
-        progress_callback: (info: { status: string; progress?: number; file?: string }) => {
+        progress_callback: (info: any) => {
           if (info.status === "downloading" && info.progress !== undefined) {
             ctx.postMessage({ type: "progress", progress: info.progress });
           } else if (info.status === "loading") {
@@ -56,7 +44,7 @@ ctx.addEventListener("message", async (event: MessageEvent) => {
   }
 
   if (type === "analyze") {
-    if (!processor || !model || !imageDataUrl) {
+    if (!pipe || !imageDataUrl) {
       ctx.postMessage({ type: "error", message: "모델이 준비되지 않았습니다" });
       return;
     }
@@ -79,22 +67,14 @@ ctx.addEventListener("message", async (event: MessageEvent) => {
         },
       ];
 
-      const text = processor.apply_chat_template(messages, {
-        tokenize: false,
-        add_generation_prompt: true,
-      });
-
-      const inputs = await processor(text, image, { do_image_splitting: false });
-
-      const streamer = new TextStreamer(processor.tokenizer, {
+      const streamer = new TextStreamer(pipe.tokenizer, {
         skip_prompt: true,
         callback_function: (token: string) => {
           ctx.postMessage({ type: "token", token });
         },
       });
 
-      await model.generate({
-        ...inputs,
+      await pipe(messages, {
         max_new_tokens: maxTokens ?? 512,
         do_sample: false,
         streamer,

@@ -16,14 +16,15 @@ const LanguageContext = createContext<LanguageContextType>({
 });
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [lang, setLang] = useState<Lang>("ko");
+  const [lang, setLang] = useState<Lang>(() => {
+    if (typeof window === "undefined") return "ko";
+    const saved = localStorage.getItem("jina_lang");
+    if (saved && saved in translations) return saved as Lang;
+    return "ko";
+  });
 
   useEffect(() => {
-    // 1. localStorage에서 즉시 로드
-    const saved = localStorage.getItem("jina_lang") as Lang | null;
-    if (saved && saved in translations) setLang(saved);
-
-    // 2. 프로필 API에서 서버 저장 값 로드
+    // 프로필 API에서 서버 저장 값 로드
     fetch("/api/profile")
       .then((r) => r.json())
       .then((data) => {
