@@ -47,3 +47,5 @@ next-env.d.ts
 
 # YouTube downloaded videos (temporary)
 tmp_videos/
+.ytdlp/
+tmp_videos/

@@ -53,11 +53,10 @@ export async function POST(request: Request) {
       if (info?.title) title = info.title;
     } catch { /* optional */ }
 
-    // Download
+    // Download: single-stream formats only (no ffmpeg merge needed)
     await ytdlp.execPromise([
       url,
-      "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
-      "--merge-output-format", "mp4",
+      "-f", "best[ext=mp4]/best[height<=720][ext=mp4]/best",
       "--no-playlist",
       "-o", outputPath,
     ]);

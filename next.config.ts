@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["nodemailer"],
+  serverExternalPackages: ["nodemailer", "yt-dlp-wrap"],
   webpack: (config) => {
     config.resolve.alias = {
       ...config.resolve.alias,
