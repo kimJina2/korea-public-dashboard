@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
-import { isEmailAllowed } from "@/lib/allowed-users";
+import { isEmailAllowed, registerUser } from "@/lib/allowed-users";
 import { verifyOtp } from "@/lib/otp";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -32,12 +32,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     maxAge: 20 * 60, // 20분
   },
   callbacks: {
-    async signIn({ user }) {
+    async signIn({ user, account }) {
       if (!user.email) return false;
+
+      // Google OAuth: 신규 사용자 자동 회원가입
+      if (account?.provider === "google") {
+        try {
+          await registerUser(user.email, user.name ?? undefined);
+          return true;
+        } catch (error) {
+          console.error("Google 회원가입 오류:", error);
+          return false;
+        }
+      }
+
+      // 이메일 OTP: 기존 등록된 사용자만 허용
       try {
         return await isEmailAllowed(user.email);
       } catch (error) {
-        console.error("Error checking email allowance:", error);
+        console.error("이메일 허용 여부 확인 오류:", error);
         return false;
       }
     },
