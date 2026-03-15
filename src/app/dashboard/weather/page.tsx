@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useWeather } from "@/hooks/use-weather";
+import { useLanguage } from "@/contexts/language-context";
 import {
   LineChart,
   Line,
@@ -32,12 +33,13 @@ function getSkyEmoji(sky?: string, pty?: string) {
 export default function WeatherPage() {
   const [city, setCity] = useState("서울");
   const { forecasts, error, isLoading } = useWeather(city);
+  const { t } = useLanguage();
 
   const chartData = forecasts.map((f) => ({
     time: `${f.date.slice(5)} ${f.time}`,
-    기온: Number(f.temp),
-    강수확률: Number(f.pop),
-    습도: Number(f.humidity),
+    temp: Number(f.temp),
+    pop: Number(f.pop),
+    humidity: Number(f.humidity),
   }));
 
   return (
@@ -45,10 +47,10 @@ export default function WeatherPage() {
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: "#1e293b" }}>
-            🌤️ 날씨 예보
+            {t.weatherPageTitle}
           </h1>
           <p className="mt-1 text-sm" style={{ color: "#64748b" }}>
-            기상청 단기예보 조회서비스 데이터 (3시간 간격)
+            {t.weatherSubtitle}
           </p>
         </div>
         <select
@@ -115,7 +117,7 @@ export default function WeatherPage() {
             color: "#dc2626",
           }}
         >
-          데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.
+          {t.dataLoadError}
         </div>
       )}
 
@@ -152,7 +154,7 @@ export default function WeatherPage() {
                 <div className="mt-2 text-2xl font-bold" style={{ color: "#3b82f6" }}>
                   {forecasts[0].pop}%
                 </div>
-                <div className="text-sm" style={{ color: "#1d4ed8" }}>강수확률</div>
+                <div className="text-sm" style={{ color: "#1d4ed8" }}>{t.precipProb}</div>
               </div>
               <div
                 className="rounded-2xl border p-5 text-center transition-all duration-300 hover:scale-[1.02]"
@@ -166,7 +168,7 @@ export default function WeatherPage() {
                 <div className="mt-2 text-2xl font-bold" style={{ color: "#0891b2" }}>
                   {forecasts[0].humidity}%
                 </div>
-                <div className="text-sm" style={{ color: "#0e7490" }}>습도</div>
+                <div className="text-sm" style={{ color: "#0e7490" }}>{t.humidity}</div>
               </div>
               <div
                 className="rounded-2xl border p-5 text-center transition-all duration-300 hover:scale-[1.02]"
@@ -180,7 +182,7 @@ export default function WeatherPage() {
                 <div className="mt-2 text-2xl font-bold" style={{ color: "#334155" }}>
                   {forecasts[0].windSpeed} m/s
                 </div>
-                <div className="text-sm" style={{ color: "#64748b" }}>풍속</div>
+                <div className="text-sm" style={{ color: "#64748b" }}>{t.windSpeed}</div>
               </div>
             </div>
           )}
@@ -195,7 +197,7 @@ export default function WeatherPage() {
             }}
           >
             <h2 className="mb-4 text-sm font-semibold" style={{ color: "#64748b" }}>
-              시간대별 기온 / 강수확률
+              {t.weatherChartTitle}
             </h2>
             <ResponsiveContainer width="100%" height={260}>
               <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
@@ -235,8 +237,8 @@ export default function WeatherPage() {
                   }}
                 />
                 <Legend wrapperStyle={{ color: "#64748b" }} />
-                <Line yAxisId="temp" type="monotone" dataKey="기온" stroke="#f59e0b" strokeWidth={2} dot={false} />
-                <Line yAxisId="pct" type="monotone" dataKey="강수확률" stroke="#3b82f6" strokeWidth={2} dot={false} />
+                <Line yAxisId="temp" type="monotone" dataKey="temp" name={t.tempHeader} stroke="#f59e0b" strokeWidth={2} dot={false} />
+                <Line yAxisId="pct" type="monotone" dataKey="pop" name={t.precipProb} stroke="#3b82f6" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -254,13 +256,13 @@ export default function WeatherPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr style={{ borderBottom: "1px solid rgba(0,0,0,0.07)", background: "#f8fafc" }}>
-                    <th className="px-4 py-3 text-left font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>날짜</th>
-                    <th className="px-4 py-3 text-left font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>시각</th>
-                    <th className="px-4 py-3 text-center font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>날씨</th>
-                    <th className="px-4 py-3 text-center font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>기온</th>
-                    <th className="px-4 py-3 text-center font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>강수확률</th>
-                    <th className="px-4 py-3 text-center font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>습도</th>
-                    <th className="px-4 py-3 text-center font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>풍속</th>
+                    <th className="px-4 py-3 text-left font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>{t.dateHeader}</th>
+                    <th className="px-4 py-3 text-left font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>{t.timeOfDayHeader}</th>
+                    <th className="px-4 py-3 text-center font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>{t.skyHeader}</th>
+                    <th className="px-4 py-3 text-center font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>{t.tempHeader}</th>
+                    <th className="px-4 py-3 text-center font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>{t.precipProb}</th>
+                    <th className="px-4 py-3 text-center font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>{t.humidity}</th>
+                    <th className="px-4 py-3 text-center font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>{t.windSpeed}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -318,19 +320,19 @@ export default function WeatherPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div className="flex items-center gap-1">
-                    <span style={{ color: "#94a3b8" }}>기온</span>
+                    <span style={{ color: "#94a3b8" }}>{t.tempHeader}</span>
                     <span className="font-medium" style={{ color: "#d97706" }}>{f.temp}°C</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <span style={{ color: "#94a3b8" }}>강수확률</span>
+                    <span style={{ color: "#94a3b8" }}>{t.precipProb}</span>
                     <span className="font-medium" style={{ color: "#3b82f6" }}>{f.pop}%</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <span style={{ color: "#94a3b8" }}>습도</span>
+                    <span style={{ color: "#94a3b8" }}>{t.humidity}</span>
                     <span className="font-medium" style={{ color: "#0891b2" }}>{f.humidity}%</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <span style={{ color: "#94a3b8" }}>풍속</span>
+                    <span style={{ color: "#94a3b8" }}>{t.windSpeed}</span>
                     <span className="font-medium" style={{ color: "#475569" }}>{f.windSpeed} m/s</span>
                   </div>
                 </div>
@@ -349,7 +351,7 @@ export default function WeatherPage() {
             color: "#94a3b8",
           }}
         >
-          해당 지역의 예보 데이터가 없습니다.
+          {t.noWeatherData}
         </div>
       )}
     </div>

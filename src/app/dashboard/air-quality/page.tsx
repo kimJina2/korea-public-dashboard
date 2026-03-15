@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useAirQuality } from "@/hooks/use-air-quality";
 import { getAqiGrade } from "@/lib/utils";
+import { useLanguage } from "@/contexts/language-context";
 import {
   BarChart,
   Bar,
@@ -19,6 +20,7 @@ const CITIES = ["서울", "부산", "대구", "인천", "광주", "대전", "울
 export default function AirQualityPage() {
   const [city, setCity] = useState("서울");
   const { items, error, isLoading } = useAirQuality(city);
+  const { t } = useLanguage();
 
   const chartData = items.slice(0, 10).map((item) => ({
     name: item.stationName,
@@ -31,10 +33,10 @@ export default function AirQualityPage() {
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: "#1e293b" }}>
-            🌫️ 대기질 정보
+            {t.airQualityPageTitle}
           </h1>
           <p className="mt-1 text-sm" style={{ color: "#64748b" }}>
-            한국환경공단 에어코리아 실시간 대기질 측정 데이터
+            {t.airQualitySubtitle}
           </p>
         </div>
         <select
@@ -106,7 +108,7 @@ export default function AirQualityPage() {
             color: "#dc2626",
           }}
         >
-          데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.
+          {t.dataLoadError}
         </div>
       )}
 
@@ -122,7 +124,7 @@ export default function AirQualityPage() {
             }}
           >
             <h2 className="mb-4 text-sm font-semibold" style={{ color: "#64748b" }}>
-              측정소별 미세먼지 농도 (μg/m³)
+              {t.airQualityChartTitle}
             </h2>
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
@@ -171,12 +173,12 @@ export default function AirQualityPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr style={{ borderBottom: "1px solid rgba(0,0,0,0.07)", background: "#f8fafc" }}>
-                    <th className="px-4 py-3 text-left font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>측정소</th>
+                    <th className="px-4 py-3 text-left font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>{t.stationHeader}</th>
                     <th className="px-4 py-3 text-center font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>PM10</th>
                     <th className="px-4 py-3 text-center font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>PM2.5</th>
-                    <th className="px-4 py-3 text-center font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>통합대기환경지수</th>
-                    <th className="px-4 py-3 text-center font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>등급</th>
-                    <th className="px-4 py-3 text-center font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>측정시각</th>
+                    <th className="px-4 py-3 text-center font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>{t.aqiHeader}</th>
+                    <th className="px-4 py-3 text-center font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>{t.gradeHeader}</th>
+                    <th className="px-4 py-3 text-center font-medium text-xs uppercase tracking-wider whitespace-nowrap" style={{ color: "#64748b" }}>{t.measuredAt}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -235,7 +237,7 @@ export default function AirQualityPage() {
             color: "#94a3b8",
           }}
         >
-          해당 지역의 측정 데이터가 없습니다.
+          {t.noAirQualityData}
         </div>
       )}
     </div>
