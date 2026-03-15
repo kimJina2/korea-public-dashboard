@@ -12,8 +12,11 @@ export async function GET(
 
   const { filename } = await params;
 
-  // Security: prevent path traversal
+  // Security: only allow UUID-named mp4/webm files (prevent path traversal & arbitrary file access)
   const safeName = path.basename(filename);
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(mp4|webm)$/i.test(safeName)) {
+    return new Response("Not found", { status: 404 });
+  }
   const filePath = path.join(process.cwd(), "tmp_videos", safeName);
 
   if (!fs.existsSync(filePath)) {

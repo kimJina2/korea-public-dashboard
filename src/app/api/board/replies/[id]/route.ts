@@ -12,7 +12,8 @@ export async function DELETE(
   }
 
   const { id } = await params;
-  const replyId = parseInt(id);
+  if (!/^\d+$/.test(id)) return NextResponse.json({ error: "잘못된 ID입니다." }, { status: 400 });
+  const replyId = parseInt(id, 10);
 
   try {
     await deleteBoardReply(replyId, session.user.email);

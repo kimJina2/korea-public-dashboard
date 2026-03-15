@@ -12,6 +12,7 @@ export async function POST(
   }
 
   const { id } = await params;
-  const result = await toggleLike(parseInt(id), session.user.email);
+  if (!/^\d+$/.test(id)) return NextResponse.json({ error: "잘못된 ID입니다." }, { status: 400 });
+  const result = await toggleLike(parseInt(id, 10), session.user.email);
   return NextResponse.json(result);
 }

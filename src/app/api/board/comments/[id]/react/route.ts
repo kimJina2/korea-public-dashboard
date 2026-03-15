@@ -12,6 +12,7 @@ export async function POST(
   }
 
   const { id } = await params;
+  if (!/^\d+$/.test(id)) return NextResponse.json({ error: "잘못된 ID입니다." }, { status: 400 });
   const { type } = await req.json();
 
   if (type !== "like" && type !== "dislike") {
@@ -19,7 +20,7 @@ export async function POST(
   }
 
   try {
-    const result = await reactToComment(parseInt(id), session.user.email, type);
+    const result = await reactToComment(parseInt(id, 10), session.user.email, type);
     return NextResponse.json(result);
   } catch (e) {
     console.error("댓글 반응 오류:", e);

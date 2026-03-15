@@ -15,7 +15,10 @@ export async function DELETE(
   }
 
   const { id } = await params;
-  const postId = parseInt(id);
+  if (!/^\d+$/.test(id)) {
+    return NextResponse.json({ error: "잘못된 ID입니다." }, { status: 400 });
+  }
+  const postId = parseInt(id, 10);
 
   const [post] = await db.select().from(posts).where(eq(posts.id, postId)).limit(1);
   if (!post) {
@@ -44,13 +47,29 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  const postId = parseInt(id);
+  if (!/^\d+$/.test(id)) {
+    return NextResponse.json({ error: "잘못된 ID입니다." }, { status: 400 });
+  }
+  const postId = parseInt(id, 10);
 
   const body = await req.json();
+
+  const VALID_VALUES = {
+    processStatus: ["received", "in_review", "resolved", "closed"],
+    answerStatus: ["none", "pending", "answered"],
+    visibility: ["public", "private", "admin_only"],
+  } as const;
+
   const allowed = ["processStatus", "answerStatus", "visibility"] as const;
   const updates: Record<string, string> = {};
   for (const key of allowed) {
-    if (body[key] !== undefined) updates[key] = body[key];
+    if (body[key] !== undefined) {
+      const val = String(body[key]);
+      if (!(VALID_VALUES[key] as readonly string[]).includes(val)) {
+        return NextResponse.json({ error: `유효하지 않은 ${key} 값입니다.` }, { status: 400 });
+      }
+      updates[key] = val;
+    }
   }
 
   if (Object.keys(updates).length === 0) {

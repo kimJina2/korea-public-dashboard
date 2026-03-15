@@ -8,7 +8,8 @@ export async function GET(
 ) {
   const session = await auth();
   const { id } = await params;
-  const postId = parseInt(id);
+  if (!/^\d+$/.test(id)) return NextResponse.json({ error: "잘못된 ID입니다." }, { status: 400 });
+  const postId = parseInt(id, 10);
   const isAdmin = session?.user?.email ? isAdminEmail(session.user.email) : false;
   const replies = await getBoardReplies(postId, isAdmin);
   return NextResponse.json(replies);
@@ -24,11 +25,16 @@ export async function POST(
   }
 
   const { id } = await params;
-  const postId = parseInt(id);
+  if (!/^\d+$/.test(id)) return NextResponse.json({ error: "잘못된 ID입니다." }, { status: 400 });
+  const postId = parseInt(id, 10);
   const { content, isInternal } = await req.json();
 
   if (!content?.trim()) {
     return NextResponse.json({ error: "답변 내용을 입력해주세요." }, { status: 400 });
+  }
+
+  if (content.trim().length > 5000) {
+    return NextResponse.json({ error: "답변은 5000자 이하로 입력해주세요." }, { status: 400 });
   }
 
   const reply = await createBoardReply({

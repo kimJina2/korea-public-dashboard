@@ -29,12 +29,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "내용을 입력해주세요." }, { status: 400 });
     }
 
+    if (content.trim().length > 10000) {
+      return NextResponse.json({ error: "내용은 10000자 이하로 입력해주세요." }, { status: 400 });
+    }
+
+    if (title && title.trim().length > 200) {
+      return NextResponse.json({ error: "제목은 200자 이하로 입력해주세요." }, { status: 400 });
+    }
+
     // inquiry/report require a title
     if ((boardType === "inquiry" || boardType === "report") && !title?.trim()) {
       return NextResponse.json({ error: "제목을 입력해주세요." }, { status: 400 });
     }
 
-    const validVisibility = ["public", "private"].includes(visibility ?? "public")
+    const VALID_BOARD_TYPES = ["normal", "inquiry", "report"];
+    const VALID_VISIBILITY = ["public", "private"];
+    const validBoardType = VALID_BOARD_TYPES.includes(boardType) ? boardType : "normal";
+    const validVisibility = VALID_VISIBILITY.includes(visibility ?? "public")
       ? visibility
       : "public";
 
@@ -56,7 +67,7 @@ export async function POST(req: Request) {
       authorImage: profile?.profileImage ?? session.user.image ?? null,
       title: title?.trim() ?? null,
       content: content.trim(),
-      boardType: boardType ?? "normal",
+      boardType: validBoardType,
       visibility: validVisibility,
     });
 

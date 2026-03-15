@@ -75,9 +75,7 @@ export async function POST(request: Request) {
     const msg = error instanceof Error ? error.message : String(error);
     console.error("yt-dlp error:", msg);
     if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
-    return Response.json(
-      { error: `다운로드 실패: ${msg.slice(0, 300)}` },
-      { status: 500 }
-    );
+    // Do not expose internal error details to client
+    return Response.json({ error: "다운로드에 실패했습니다. 잠시 후 다시 시도해주세요." }, { status: 500 });
   }
 }

@@ -2,6 +2,7 @@ import { db } from "./db";
 import { emailOtps } from "./schema";
 import { and, eq, gt } from "drizzle-orm";
 import nodemailer from "nodemailer";
+import { checkRateLimit } from "./rate-limit";
 
 function getTransport() {
   return nodemailer.createTransport({
@@ -41,6 +42,13 @@ export async function createAndSendOtp(email: string): Promise<void> {
 }
 
 export async function verifyOtp(email: string, otp: string): Promise<boolean> {
+  // Brute force protection: max 10 attempts per email per 10 minutes
+  const limit = checkRateLimit(`otp-verify:${email}`, 10, 10 * 60 * 1000);
+  if (!limit.allowed) return false;
+
+  // Validate OTP is exactly 6 digits
+  if (!/^\d{6}$/.test(otp)) return false;
+
   const now = new Date().toISOString();
 
   const rows = await db

@@ -15,7 +15,8 @@ export async function DELETE(
   }
 
   const { id } = await params;
-  const commentId = parseInt(id);
+  if (!/^\d+$/.test(id)) return NextResponse.json({ error: "잘못된 ID입니다." }, { status: 400 });
+  const commentId = parseInt(id, 10);
 
   const [comment] = await db
     .select()
