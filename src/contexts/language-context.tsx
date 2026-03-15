@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
 import { type Lang, type Translations, translations, getT } from "@/lib/i18n";
 
 type LanguageContextType = {
@@ -15,7 +15,7 @@ const LanguageContext = createContext<LanguageContextType>({
   changeLanguage: () => {},
 });
 
-export function LanguageProvider({ children }: { children: React.ReactNode }) {
+export function LanguageProvider({ children }: { children: ReactNode }) {
   const [lang, setLang] = useState<Lang>("ko");
 
   useEffect(() => {
