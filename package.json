@@ -10,6 +10,7 @@
     "db:seed": "npx tsx src/scripts/seed.ts"
   },
   "dependencies": {
+    "@huggingface/transformers": "^3.8.1",
     "@libsql/client": "^0.17.0",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@radix-ui/react-select": "^2.2.6",
