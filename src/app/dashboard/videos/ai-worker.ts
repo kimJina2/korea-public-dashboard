@@ -1,55 +1,54 @@
-/// <reference lib="webworker" />
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   AutoProcessor,
   AutoModelForVision2Seq,
   RawImage,
   TextStreamer,
-  type PretrainedModelOptions,
 } from "@huggingface/transformers";
 
 const MODEL_ID = "onnx-community/Qwen3.5-0.8B-ONNX";
 
-let processor: InstanceType<typeof AutoProcessor> | null = null;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// self is DedicatedWorkerGlobalScope at runtime; cast to any to avoid dom/webworker lib conflicts
+const ctx = self as any;
+
+let processor: any = null;
 let model: any = null;
 
-self.addEventListener("message", async (event: MessageEvent) => {
-  const { type, imageDataUrl, prompt } = event.data as {
+ctx.addEventListener("message", async (event: MessageEvent) => {
+  const { type, imageDataUrl, prompt, maxTokens } = event.data as {
     type: "load" | "analyze";
     imageDataUrl?: string;
     prompt?: string;
+    maxTokens?: number;
   };
 
   if (type === "load") {
     try {
-      self.postMessage({ type: "status", message: "프로세서 로딩 중..." });
+      ctx.postMessage({ type: "status", message: "프로세서 로딩 중..." });
 
       processor = await AutoProcessor.from_pretrained(MODEL_ID);
 
-      self.postMessage({ type: "status", message: "모델 다운로드 중... (~500MB, 최초 1회)" });
+      ctx.postMessage({ type: "status", message: "모델 다운로드 중... (~500MB, 최초 1회)" });
 
-      const modelOptions: PretrainedModelOptions = {
+      model = await (AutoModelForVision2Seq as any).from_pretrained(MODEL_ID, {
         dtype: {
           embed_tokens: "q4",
           vision_encoder: "fp16",
           decoder_model_merged: "q4",
-        } as Record<string, string>,
+        },
         device: "webgpu",
         progress_callback: (info: { status: string; progress?: number; file?: string }) => {
           if (info.status === "downloading" && info.progress !== undefined) {
-            self.postMessage({ type: "progress", progress: info.progress });
+            ctx.postMessage({ type: "progress", progress: info.progress });
           } else if (info.status === "loading") {
-            self.postMessage({ type: "status", message: `로딩 중: ${info.file ?? ""}` });
+            ctx.postMessage({ type: "status", message: `로딩 중: ${info.file ?? ""}` });
           }
         },
-      };
+      });
 
-      model = await AutoModelForVision2Seq.from_pretrained(MODEL_ID, modelOptions);
-
-      self.postMessage({ type: "ready" });
+      ctx.postMessage({ type: "ready" });
     } catch (error) {
-      self.postMessage({
+      ctx.postMessage({
         type: "error",
         message: `모델 로드 실패: ${error instanceof Error ? error.message : String(error)}`,
       });
@@ -58,7 +57,7 @@ self.addEventListener("message", async (event: MessageEvent) => {
 
   if (type === "analyze") {
     if (!processor || !model || !imageDataUrl) {
-      self.postMessage({ type: "error", message: "모델이 준비되지 않았습니다" });
+      ctx.postMessage({ type: "error", message: "모델이 준비되지 않았습니다" });
       return;
     }
 
@@ -80,36 +79,30 @@ self.addEventListener("message", async (event: MessageEvent) => {
         },
       ];
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const text = (processor as any).apply_chat_template(messages, {
+      const text = processor.apply_chat_template(messages, {
         tokenize: false,
         add_generation_prompt: true,
       });
 
-      const inputs = await (processor as (...args: unknown[]) => Promise<unknown>)(
-        text,
-        image,
-        { do_image_splitting: false }
-      );
+      const inputs = await processor(text, image, { do_image_splitting: false });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const streamer = new TextStreamer((processor as any).tokenizer, {
+      const streamer = new TextStreamer(processor.tokenizer, {
         skip_prompt: true,
         callback_function: (token: string) => {
-          self.postMessage({ type: "token", token });
+          ctx.postMessage({ type: "token", token });
         },
       });
 
       await model.generate({
-        ...(inputs as object),
-        max_new_tokens: 512,
+        ...inputs,
+        max_new_tokens: maxTokens ?? 512,
         do_sample: false,
         streamer,
       });
 
-      self.postMessage({ type: "done" });
+      ctx.postMessage({ type: "done" });
     } catch (error) {
-      self.postMessage({
+      ctx.postMessage({
         type: "error",
         message: `분석 실패: ${error instanceof Error ? error.message : String(error)}`,
       });
