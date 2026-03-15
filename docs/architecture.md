@@ -11,15 +11,17 @@ Vercel Edge (Middleware)
     │
     ▼
 Next.js App Router
-    ├── /                    (로그인 페이지)
-    ├── /dashboard           (대시보드 홈)
-    ├── /dashboard/air-quality
-    ├── /dashboard/weather
-    ├── /dashboard/transit
-    └── /api/*               (API 라우트, 인증 필요)
+    ├── /                         (로그인 페이지)
+    ├── /dashboard                (대시보드 홈)
+    ├── /dashboard/air-quality    (오늘의 정보: 대기질·날씨·교통 통합)
+    ├── /dashboard/board          (게시판)
+    ├── /dashboard/videos         (나만의 영상 - On-Device AI 분석)
+    └── /api/*                    (API 라우트, 인증 필요)
          │
          ▼
-공공데이터포털 API (data.go.kr)
+    ├── 공공데이터포털 API (data.go.kr)
+    ├── Turso DB (LibSQL) - 게시판·인증·프로필
+    └── YouTube (yt-dlp-wrap 다운로드)
 ```
 
 ## 인증 흐름
@@ -56,6 +58,7 @@ Next.js App Router
 
 ## 데이터 흐름
 
+### 공공데이터 (대기질·날씨·교통)
 ```
 클라이언트 컴포넌트 (useAirQuality / useWeather / useTransit)
     │  SWR fetch
@@ -68,6 +71,40 @@ Next.js API 라우트 (/api/air-quality, /api/weather, /api/transit)
     │
     ▼
 JSON 응답 → SWR 캐시 → UI 렌더링
+```
+
+### YouTube 영상 다운로드 및 AI 분석
+```
+클라이언트 (videos/page.tsx)
+    │  1. POST /api/youtube/download (URL 전송)
+    ▼
+서버 API 라우트
+    │  yt-dlp-wrap: .ytdlp/yt-dlp.exe 로 영상 다운로드
+    │  → tmp_videos/{uuid}.mp4 저장
+    │  응답: { videoUrl, title }
+    ▼
+클라이언트 <video> 태그
+    │  GET /api/youtube/video/{filename} (Range 스트리밍)
+    │  사용자: 일시정지 → "화면 분석" 클릭
+    ▼
+Hidden <canvas> → toDataURL("image/jpeg") → base64 이미지
+    │  Web Worker (ai-worker.ts) postMessage
+    ▼
+SmolVLM-256M (WebGPU / ONNX)
+    │  TextStreamer → 토큰 단위 스트리밍 응답
+    ▼
+UI에 실시간 분석 텍스트 출력
+```
+
+### 게시판
+```
+클라이언트 (board/)
+    │  fetch
+    ▼
+/api/board/posts, /api/board/comments, /api/board/reactions
+    │  세션 인증
+    ▼
+Turso DB (posts, comments, comment_reactions 테이블)
 ```
 
 ## 데이터베이스 스키마
@@ -101,6 +138,43 @@ JSON 응답 → SWR 캐시 → UI 렌더링
 | timestamp | TEXT | 발생 시각 |
 | ip_address | TEXT | IP 주소 |
 
+### user_profiles
+| 컬럼 | 타입 | 설명 |
+|------|------|------|
+| email | TEXT PK | 사용자 이메일 |
+| display_name | TEXT | 표시 이름 |
+| avatar_url | TEXT | 프로필 이미지 URL |
+| language | TEXT | 선호 언어 (ko/en/ja/zh/fr/de/es) |
+| updated_at | TEXT | 수정 일시 |
+
+### posts
+| 컬럼 | 타입 | 설명 |
+|------|------|------|
+| id | INTEGER PK | 자동 증가 |
+| author_email | TEXT | 작성자 이메일 |
+| title | TEXT | 제목 |
+| content | TEXT | 내용 |
+| created_at | TEXT | 작성 일시 |
+| updated_at | TEXT | 수정 일시 |
+
+### comments
+| 컬럼 | 타입 | 설명 |
+|------|------|------|
+| id | INTEGER PK | 자동 증가 |
+| post_id | INTEGER FK | 게시글 ID |
+| author_email | TEXT | 작성자 이메일 |
+| content | TEXT | 댓글 내용 |
+| created_at | TEXT | 작성 일시 |
+
+### comment_reactions
+| 컬럼 | 타입 | 설명 |
+|------|------|------|
+| id | INTEGER PK | 자동 증가 |
+| comment_id | INTEGER FK | 댓글 ID |
+| user_email | TEXT | 반응한 사용자 |
+| emoji | TEXT | 이모지 종류 |
+| created_at | TEXT | 반응 일시 |
+
 ## 캐싱 전략
 
 | 데이터 | 캐시 위치 | TTL |
@@ -109,3 +183,20 @@ JSON 응답 → SWR 캐시 → UI 렌더링
 | 날씨 | Next.js fetch cache | 1시간 |
 | 교통 | Next.js fetch cache | 1시간 |
 | 클라이언트 재검증 | SWR refreshInterval | 상동 |
+| YouTube 영상 | tmp_videos/ 로컬 파일 | 영구 (수동 삭제) |
+
+## 다국어(i18n)
+
+`src/lib/i18n.ts`에 7개 언어 번역 키를 관리합니다.
+
+| 언어 | 코드 |
+|------|------|
+| 한국어 | ko |
+| 영어 | en |
+| 일본어 | ja |
+| 중국어(간체) | zh |
+| 프랑스어 | fr |
+| 독일어 | de |
+| 스페인어 | es |
+
+`useLanguage()` 훅으로 현재 언어 및 번역 객체 `t`에 접근합니다. 선호 언어는 `user_profiles.language`에 서버 저장, `localStorage`에 클라이언트 캐시됩니다.

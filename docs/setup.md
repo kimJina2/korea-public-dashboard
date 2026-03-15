@@ -89,7 +89,18 @@ npm run db:seed
 
 `src/scripts/seed.ts`의 `usersToSeed` 배열에 허용할 이메일을 추가하세요.
 
-## 8. Vercel 배포 설정
+## 8. 나만의 영상 페이지 (로컬 전용)
+
+YouTube 다운로드 기능은 로컬 환경에서만 동작합니다.
+
+- **최초 실행 시** `.ytdlp/yt-dlp.exe`를 GitHub에서 자동 다운로드합니다 (약 20MB).
+- `tmp_videos/` 디렉토리에 다운로드된 영상이 저장됩니다.
+- AI 모델은 최초 로드 시 브라우저가 HuggingFace Hub에서 약 256MB를 다운로드합니다.
+- WebGPU 지원 브라우저(Chrome 113+, Edge 113+) 권장입니다.
+
+> Vercel 배포 환경에서는 YouTube 다운로드가 동작하지 않습니다 (파일시스템·바이너리 제한).
+
+## 9. Vercel 배포 설정
 
 1. GitHub에 코드 푸시
 2. [Vercel](https://vercel.com) 로그인 후 새 프로젝트 생성
