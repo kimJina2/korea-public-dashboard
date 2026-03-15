@@ -64,9 +64,7 @@ ctx.addEventListener("message", async (event: MessageEvent) => {
             { type: "image", image },
             {
               type: "text",
-              text:
-                prompt ||
-                "이 이미지를 자세히 분석해서 한국어로 설명해 주세요. 화면에 보이는 모든 요소, 텍스트, 사람, 물체, 배경, 분위기 등을 상세하게 묘사해 주세요.",
+              text: prompt || "Describe this image in detail.",
             },
           ],
         },
