@@ -1215,7 +1215,7 @@ export function BoardClient({ currentUser }: { currentUser: CurrentUser }) {
 
   if (view === "write") {
     return (
-      <div className="max-w-2xl mx-auto">
+      <div className="w-full lg:max-w-[1214px] mx-auto">
         <WriteForm currentUser={currentUser} onCreated={handleCreated} onCancel={() => setView("list")} />
       </div>
     );
@@ -1223,7 +1223,7 @@ export function BoardClient({ currentUser }: { currentUser: CurrentUser }) {
 
   if (view === "detail" && selectedPostId !== null) {
     return (
-      <div className="max-w-2xl mx-auto">
+      <div className="w-full lg:max-w-[1214px] mx-auto">
         <DetailView
           postId={selectedPostId}
           currentUser={currentUser}
@@ -1262,7 +1262,7 @@ export function BoardClient({ currentUser }: { currentUser: CurrentUser }) {
   const handleSelectPost = (id: number) => { setSelectedPostId(id); setView("detail"); };
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="w-full lg:max-w-[1214px] mx-auto">
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div>

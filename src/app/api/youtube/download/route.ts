@@ -6,6 +6,7 @@ import fs from "fs";
 import { auth } from "@/auth";
 
 const execAsync = promisify(exec);
+const EXEC_OPTS = { timeout: 5 * 60 * 1000, maxBuffer: 1024 * 1024 * 10 };
 
 function getVideosDir() {
   const dir = path.join(process.cwd(), "tmp_videos");
@@ -13,13 +14,26 @@ function getVideosDir() {
   return dir;
 }
 
+async function runCommand(cmd: string): Promise<{ stdout: string; stderr: string }> {
+  return execAsync(cmd, EXEC_OPTS);
+}
+
+async function ytdlp(args: string): Promise<{ stdout: string; stderr: string }> {
+  // Try yt-dlp binary first, then python -m yt_dlp
+  try {
+    return await runCommand(`yt-dlp ${args}`);
+  } catch {
+    return await runCommand(`python -m yt_dlp ${args}`);
+  }
+}
+
 export async function POST(request: Request) {
   const session = await auth();
   if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { url } = await request.json();
+  const body = await request.json();
+  const url: string = body?.url ?? "";
 
-  // Basic YouTube URL validation
   const ytRegex = /^(https?:\/\/)?(www\.)?(youtube\.com\/watch\?.*v=|youtu\.be\/)[\w-]+/;
   if (!ytRegex.test(url)) {
     return Response.json({ error: "유효하지 않은 YouTube URL입니다" }, { status: 400 });
@@ -27,40 +41,40 @@ export async function POST(request: Request) {
 
   const id = randomUUID();
   const videosDir = getVideosDir();
-  const outputPath = path.join(videosDir, `${id}.%(ext)s`);
+  // Fixed mp4 output — no shell templating issues
+  const outputPath = path.join(videosDir, `${id}.mp4`);
 
   try {
-    // Get title first
-    const { stdout: title } = await execAsync(
-      `python -m yt_dlp --get-title --no-playlist "${url}"`
-    ).catch(async () => {
-      return execAsync(`yt-dlp --get-title --no-playlist "${url}"`);
-    });
-
-    // Download video
-    await execAsync(
-      `python -m yt_dlp -f "best[ext=mp4]/best[height<=720]/best" --no-playlist -o "${outputPath}" "${url}"`
-    ).catch(async () => {
-      return execAsync(
-        `yt-dlp -f "best[ext=mp4]/best[height<=720]/best" --no-playlist -o "${outputPath}" "${url}"`
-      );
-    });
-
-    // Find the downloaded file
-    const files = fs.readdirSync(videosDir).filter((f) => f.startsWith(id));
-    if (files.length === 0) {
-      return Response.json({ error: "다운로드 실패" }, { status: 500 });
+    // Get title (non-fatal if it fails)
+    let title = "영상";
+    try {
+      const { stdout } = await ytdlp(`--get-title --no-playlist "${url}"`);
+      if (stdout.trim()) title = stdout.trim();
+    } catch {
+      // title is optional
     }
 
-    const filename = files[0];
+    // Download
+    await ytdlp(
+      `-f "best[ext=mp4]/bestvideo[ext=mp4]+bestaudio/best" --no-playlist --merge-output-format mp4 -o "${outputPath}" "${url}"`
+    );
+
+    if (!fs.existsSync(outputPath)) {
+      return Response.json({ error: "다운로드 파일을 찾을 수 없습니다" }, { status: 500 });
+    }
+
     return Response.json({
       id,
-      filename,
-      title: title.trim(),
-      videoUrl: `/api/youtube/video/${filename}`,
+      filename: `${id}.mp4`,
+      title,
+      videoUrl: `/api/youtube/video/${id}.mp4`,
     });
   } catch (error) {
-    console.error("yt-dlp error:", error);
-    return Response.json({ error: "영상 다운로드 중 오류가 발생했습니다" }, { status: 500 });
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("yt-dlp error:", msg);
+    return Response.json(
+      { error: `다운로드 실패: ${msg.slice(0, 200)}` },
+      { status: 500 }
+    );
   }
 }
