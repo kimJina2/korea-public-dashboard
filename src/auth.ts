@@ -58,6 +58,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return session;
     },
   },
+  events: {
+    async signIn({ user, account }) {
+      if (user.email) {
+        const { logLogin } = await import("@/lib/server-log");
+        await logLogin(user.email, account?.provider ?? "unknown");
+      }
+    },
+  },
   pages: {
     signIn: "/",
     error: "/",

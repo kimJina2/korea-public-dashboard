@@ -169,6 +169,28 @@ async function seed() {
     )
   `);
 
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS error_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      path TEXT NOT NULL,
+      method TEXT NOT NULL DEFAULT 'GET',
+      error_message TEXT NOT NULL,
+      stack TEXT,
+      user_email TEXT,
+      status_code INTEGER,
+      timestamp TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
+
+  // 기존 access_log 테이블에 새 컬럼 추가
+  const alterAccessLogColumns = [
+    `ALTER TABLE access_log ADD COLUMN provider TEXT`,
+    `ALTER TABLE access_log ADD COLUMN user_agent TEXT`,
+  ];
+  for (const sql of alterAccessLogColumns) {
+    try { await client.execute(sql); } catch { /* 컬럼이 이미 존재하면 무시 */ }
+  }
+
   // 허용 사용자 추가
   const usersToSeed = [
     { email: "kts123@kookmin.ac.kr", name: "관리자", addedBy: "system" },

@@ -30,6 +30,8 @@ export const accessLog = sqliteTable("access_log", {
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
   ipAddress: text("ip_address"),
+  provider: text("provider"), // 'google' | 'otp'
+  userAgent: text("user_agent"),
 });
 
 export const posts = sqliteTable("posts", {
@@ -129,4 +131,17 @@ export const userProfiles = sqliteTable("user_profiles", {
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
   updatedAt: text("updated_at"),
+});
+
+export const errorLogs = sqliteTable("error_logs", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  path: text("path").notNull(),
+  method: text("method").notNull().default("GET"),
+  errorMessage: text("error_message").notNull(),
+  stack: text("stack"),
+  userEmail: text("user_email"),
+  statusCode: integer("status_code"),
+  timestamp: text("timestamp")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
 });
