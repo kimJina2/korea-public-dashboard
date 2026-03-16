@@ -1,30 +1,61 @@
 import YTDlpWrap from "yt-dlp-wrap";
 import { randomUUID } from "crypto";
+import { execSync } from "child_process";
 import path from "path";
 import fs from "fs";
+import os from "os";
 import { auth } from "@/auth";
 
 export const maxDuration = 300; // Vercel Pro: 5분 타임아웃
 
 function getVideosDir() {
-  const dir = path.join("/tmp", "yt_videos");
+  const dir = path.join(os.tmpdir(), "yt_videos");
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   return dir;
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function getYtDlp(): Promise<YTDlpWrap> {
-  const binaryDir = path.join("/tmp", "ytdlp_bin");
+  // 1. 시스템 PATH에 yt-dlp가 설치되어 있으면 그것을 사용
+  try {
+    execSync("yt-dlp --version", { stdio: "ignore" });
+    return new YTDlpWrap("yt-dlp");
+  } catch { /* not in PATH, fall through */ }
+
+  // 2. 임시 디렉토리에 바이너리 다운로드
+  const binaryDir = path.join(os.tmpdir(), "ytdlp_bin");
   if (!fs.existsSync(binaryDir)) fs.mkdirSync(binaryDir, { recursive: true });
 
   const ext = process.platform === "win32" ? ".exe" : "";
   const binaryPath = path.join(binaryDir, `yt-dlp${ext}`);
 
-  if (!fs.existsSync(binaryPath)) {
-    // Auto-download latest yt-dlp binary
+  const downloadAndWait = async () => {
+    if (fs.existsSync(binaryPath)) fs.unlinkSync(binaryPath);
     await YTDlpWrap.downloadFromGithub(binaryPath);
-    // Make executable on Unix/Linux (Vercel)
     if (process.platform !== "win32") {
       fs.chmodSync(binaryPath, 0o755);
+    }
+    // Windows: 바이러스 스캐너가 파일 잠금 해제 대기
+    if (process.platform === "win32") {
+      await sleep(3000);
+    }
+  };
+
+  if (!fs.existsSync(binaryPath)) {
+    await downloadAndWait();
+  }
+
+  // EBUSY 대비: 실제로 실행 가능한지 확인
+  try {
+    execSync(`"${binaryPath}" --version`, { stdio: "ignore" });
+  } catch (e) {
+    const code = (e as NodeJS.ErrnoException).code;
+    if (code === "EBUSY" || code === "EACCES") {
+      // 잠긴 바이너리 → 재다운로드
+      await downloadAndWait();
     }
   }
 
@@ -79,7 +110,9 @@ export async function POST(request: Request) {
     const msg = error instanceof Error ? error.message : String(error);
     console.error("yt-dlp error:", msg);
     if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
-    // Do not expose internal error details to client
-    return Response.json({ error: "다운로드에 실패했습니다. 잠시 후 다시 시도해주세요." }, { status: 500 });
+    const displayError = process.env.NODE_ENV === "development"
+      ? msg
+      : "다운로드에 실패했습니다. 잠시 후 다시 시도해주세요.";
+    return Response.json({ error: displayError }, { status: 500 });
   }
 }

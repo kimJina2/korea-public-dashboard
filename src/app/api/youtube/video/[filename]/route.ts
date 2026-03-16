@@ -1,5 +1,6 @@
 import path from "path";
 import fs from "fs";
+import os from "os";
 import { Readable } from "stream";
 import { auth } from "@/auth";
 
@@ -17,7 +18,7 @@ export async function GET(
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(mp4|webm)$/i.test(safeName)) {
     return new Response("Not found", { status: 404 });
   }
-  const filePath = path.join("/tmp", "yt_videos", safeName);
+  const filePath = path.join(os.tmpdir(), "yt_videos", safeName);
 
   if (!fs.existsSync(filePath)) {
     return new Response("Not found", { status: 404 });
