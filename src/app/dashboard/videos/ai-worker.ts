@@ -69,15 +69,15 @@ ctx.addEventListener("message", async (event: MessageEvent) => {
       const image = await RawImage.fromURL(imageDataUrl);
 
       const systemMsg = LANG_SYSTEM[lang ?? "ko"] ?? LANG_SYSTEM.ko;
+      const userText = `${systemMsg}\n\n${prompt || "Describe this image in detail."}`;
       const messages = [
-        { role: "system", content: systemMsg },
         {
           role: "user",
           content: [
             { type: "image", image },
             {
               type: "text",
-              text: prompt || "Describe this image in detail.",
+              text: userText,
             },
           ],
         },
