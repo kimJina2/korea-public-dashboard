@@ -110,9 +110,6 @@ export async function POST(request: Request) {
     const msg = error instanceof Error ? error.message : String(error);
     console.error("yt-dlp error:", msg);
     if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
-    const displayError = process.env.NODE_ENV === "development"
-      ? msg
-      : "다운로드에 실패했습니다. 잠시 후 다시 시도해주세요.";
-    return Response.json({ error: displayError }, { status: 500 });
+    return Response.json({ error: msg }, { status: 500 });
   }
 }

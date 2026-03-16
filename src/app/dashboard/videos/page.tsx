@@ -110,17 +110,23 @@ export default function VideosPage() {
     canvas.height = video.videoHeight || 360;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    ctx.drawImage(video, 0, 0);
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
-    setCapturedFrame(dataUrl);
 
-    setAnalyzing(true);
-    resultRef.current = "";
-    setResult("");
-    setTokenCount(0);
+    try {
+      ctx.drawImage(video, 0, 0);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+      setCapturedFrame(dataUrl);
 
-    worker.postMessage({ type: "analyze", imageDataUrl: dataUrl, prompt, maxTokens, lang });
-  }, [modelStatus, prompt, maxTokens]);
+      setAnalyzing(true);
+      resultRef.current = "";
+      setResult("");
+      setTokenCount(0);
+
+      worker.postMessage({ type: "analyze", imageDataUrl: dataUrl, prompt, maxTokens, lang });
+    } catch (e) {
+      console.error("captureAndAnalyze error:", e);
+      setAnalyzing(false);
+    }
+  }, [modelStatus, prompt, maxTokens, lang]);
 
   const handleDownload = async () => {
     if (!ytUrl.trim()) return;
