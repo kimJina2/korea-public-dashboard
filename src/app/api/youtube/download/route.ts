@@ -34,7 +34,23 @@ async function getYtDlp(): Promise<YTDlpWrap> {
 
   const downloadAndWait = async () => {
     if (fs.existsSync(binaryPath)) fs.unlinkSync(binaryPath);
-    await YTDlpWrap.downloadFromGithub(binaryPath);
+
+    // 플랫폼에 맞는 standalone 바이너리 명시적 다운로드
+    const assetName =
+      process.platform === "win32" ? "yt-dlp.exe" :
+      process.platform === "darwin" ? "yt-dlp_macos" :
+      "yt-dlp_linux"; // Linux: Python 불필요한 standalone 바이너리
+
+    const apiRes = await fetch("https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest");
+    const release = await apiRes.json();
+    const asset = release.assets?.find((a: { name: string }) => a.name === assetName);
+    if (!asset) throw new Error(`yt-dlp 바이너리를 찾을 수 없습니다: ${assetName}`);
+
+    const binRes = await fetch(asset.browser_download_url);
+    if (!binRes.ok) throw new Error(`바이너리 다운로드 실패: ${binRes.status}`);
+    const buf = await binRes.arrayBuffer();
+    fs.writeFileSync(binaryPath, Buffer.from(buf));
+
     if (process.platform !== "win32") {
       fs.chmodSync(binaryPath, 0o755);
     }
