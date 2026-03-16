@@ -101,6 +101,8 @@ ctx.addEventListener("message", async (event: MessageEvent) => {
         ...inputs,
         max_new_tokens: maxTokens ?? 512,
         do_sample: false,
+        repetition_penalty: 1.3,
+        no_repeat_ngram_size: 3,
         streamer,
       });
 
