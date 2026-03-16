@@ -109,6 +109,7 @@ export async function POST(request: Request) {
       url,
       "-f", "best[ext=mp4]/best[height<=720][ext=mp4]/best",
       "--no-playlist",
+      "--js-runtimes", "node",
       "-o", outputPath,
     ]);
 
@@ -126,6 +127,21 @@ export async function POST(request: Request) {
     const msg = error instanceof Error ? error.message : String(error);
     console.error("yt-dlp error:", msg);
     if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
-    return Response.json({ error: msg }, { status: 500 });
+
+    // 친절한 에러 메시지 변환
+    let userMsg = "다운로드에 실패했습니다. 잠시 후 다시 시도해주세요.";
+    if (msg.includes("Sign in to confirm") || msg.includes("not a bot")) {
+      userMsg = "YouTube가 서버 접근을 차단했습니다. 잠시 후 다시 시도하거나 다른 영상을 이용해주세요.";
+    } else if (msg.includes("Private video") || msg.includes("private")) {
+      userMsg = "비공개 영상은 다운로드할 수 없습니다.";
+    } else if (msg.includes("Video unavailable") || msg.includes("unavailable")) {
+      userMsg = "해당 영상을 찾을 수 없거나 재생이 불가능합니다.";
+    } else if (msg.includes("age") && msg.includes("restricted")) {
+      userMsg = "연령 제한 영상은 다운로드할 수 없습니다.";
+    } else if (msg.includes("copyright") || msg.includes("removed")) {
+      userMsg = "저작권 문제로 다운로드할 수 없는 영상입니다.";
+    }
+
+    return Response.json({ error: userMsg }, { status: 500 });
   }
 }
