@@ -21,22 +21,37 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const [lang, setLang] = useState<Lang>("ko");
 
   useEffect(() => {
-    // 1. localStorage에서 즉시 적용
-    const saved = localStorage.getItem("jina_lang");
-    if (saved && saved in translations) {
-      setLang(saved as Lang);
-    }
-
-    // 2. 프로필 API에서 서버 저장 값 로드 (우선순위 높음)
+    // 프로필 API로 로그인 여부 확인 후 언어 적용
     fetch("/api/profile")
-      .then((r) => r.json())
+      .then((r) => {
+        if (r.status === 401) {
+          // 비로그인 상태 → localStorage 초기화 후 한국어 고정
+          localStorage.removeItem("jina_lang");
+          setLang("ko");
+          return null;
+        }
+        return r.json();
+      })
       .then((data) => {
+        if (!data) return;
         if (data?.language && data.language in translations) {
           setLang(data.language as Lang);
           localStorage.setItem("jina_lang", data.language);
+        } else {
+          // 서버에 언어 설정 없으면 localStorage 값 적용
+          const saved = localStorage.getItem("jina_lang");
+          if (saved && saved in translations) {
+            setLang(saved as Lang);
+          }
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        // 네트워크 오류 시 localStorage 값 유지
+        const saved = localStorage.getItem("jina_lang");
+        if (saved && saved in translations) {
+          setLang(saved as Lang);
+        }
+      });
   }, []);
 
   const changeLanguage = useCallback((newLang: Lang) => {
