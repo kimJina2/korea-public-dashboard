@@ -14,12 +14,12 @@ const securityHeaders = [
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // unsafe-eval needed for Next.js dev + ONNX runtime
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net", // unsafe-eval needed for Next.js dev + ONNX runtime
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https://lh3.googleusercontent.com https://avatars.githubusercontent.com",
       "font-src 'self'",
       "media-src 'self' blob:",
-      "connect-src 'self' https://apis.data.go.kr https://api.resend.com https://huggingface.co https://cdn-lfs.huggingface.co https://cdn-lfs-us-1.huggingface.co https://*.huggingface.co",
+      "connect-src 'self' https://apis.data.go.kr https://api.resend.com https://huggingface.co https://cdn-lfs.huggingface.co https://cdn-lfs-us-1.huggingface.co https://*.huggingface.co https://cdn.jsdelivr.net",
       "worker-src 'self' blob:",
       "frame-ancestors 'none'",
     ].join("; "),
