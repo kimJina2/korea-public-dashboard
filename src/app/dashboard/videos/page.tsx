@@ -119,7 +119,7 @@ export default function VideosPage() {
     setResult("");
     setTokenCount(0);
 
-    worker.postMessage({ type: "analyze", imageDataUrl: dataUrl, prompt, maxTokens });
+    worker.postMessage({ type: "analyze", imageDataUrl: dataUrl, prompt, maxTokens, lang });
   }, [modelStatus, prompt, maxTokens]);
 
   const handleDownload = async () => {

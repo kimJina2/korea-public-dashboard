@@ -13,12 +13,23 @@ const ctx = self as any;
 let processor: any = null;
 let model: any = null;
 
+const LANG_SYSTEM: Record<string, string> = {
+  ko: "You must respond only in Korean (한국어). Never use English or any other language.",
+  en: "You must respond only in English.",
+  ja: "You must respond only in Japanese (日本語). Never use English.",
+  es: "You must respond only in Spanish (Español). Never use English.",
+  fr: "You must respond only in French (Français). Never use English.",
+  zh: "You must respond only in Chinese (中文). Never use English.",
+  vi: "You must respond only in Vietnamese (Tiếng Việt). Never use English.",
+};
+
 ctx.addEventListener("message", async (event: MessageEvent) => {
-  const { type, imageDataUrl, prompt, maxTokens } = event.data as {
+  const { type, imageDataUrl, prompt, maxTokens, lang } = event.data as {
     type: "load" | "analyze";
     imageDataUrl?: string;
     prompt?: string;
     maxTokens?: number;
+    lang?: string;
   };
 
   if (type === "load") {
@@ -57,7 +68,9 @@ ctx.addEventListener("message", async (event: MessageEvent) => {
     try {
       const image = await RawImage.fromURL(imageDataUrl);
 
+      const systemMsg = LANG_SYSTEM[lang ?? "ko"] ?? LANG_SYSTEM.ko;
       const messages = [
+        { role: "system", content: systemMsg },
         {
           role: "user",
           content: [
