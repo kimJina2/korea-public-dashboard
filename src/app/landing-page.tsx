@@ -3,7 +3,223 @@
 import { useState } from "react";
 import { handleSignIn } from "./actions";
 import { signIn } from "next-auth/react";
+import { LanguageProvider, useLanguage } from "@/contexts/language-context";
+import { useAirQuality } from "@/hooks/use-air-quality";
+import { useWeather } from "@/hooks/use-weather";
+import { useTransit } from "@/hooks/use-transit";
+import { getAqiGrade } from "@/lib/utils";
+import type { Translations } from "@/lib/i18n";
 
+// ── 유틸 ────────────────────────────────────────────────────────────────────
+const AIR_CITIES = ["서울","부산","대구","인천","광주","대전","울산","경기","강원","충북","충남","전북","전남","경북","경남","제주"];
+const WEATHER_CITIES = ["서울","부산","대구","인천","광주","대전","울산","제주"];
+const TRANSIT_CITIES = ["부산","대구","인천","광주","대전","울산","경기"];
+
+function translateSky(sky: string | undefined, t: Translations): string {
+  if (!sky) return "";
+  switch (sky) {
+    case "맑음": return t.skyClear;
+    case "구름많음": return t.skyPartlyCloudy;
+    case "흐림": return t.skyOvercast;
+    default: return sky;
+  }
+}
+
+function getRouteType(routetp: string, t: Translations): string {
+  const map: Record<string, string> = {
+    "11": t.rtMainline, "12": t.rtBranch, "13": t.rtCircular,
+    "14": t.rtWide, "15": t.rtExpress, "16": t.rtTourist,
+    "21": t.rtSeat, "22": t.rtGeneral, "23": t.rtWide, "30": t.rtVillage,
+  };
+  return map[routetp] ?? routetp;
+}
+
+function getSkyEmoji(sky?: string, pty?: string) {
+  if (pty && pty !== "없음") {
+    if (pty.includes("눈")) return "❄️";
+    if (pty.includes("비")) return "🌧️";
+    return "🌦️";
+  }
+  switch (sky) {
+    case "맑음": return "☀️";
+    case "구름많음": return "⛅";
+    case "흐림": return "☁️";
+    default: return "🌤️";
+  }
+}
+
+function Skeleton() {
+  return (
+    <div className="space-y-3">
+      <div className="h-3 w-32 animate-pulse rounded" style={{ background: "#e2e8f0" }} />
+      {[...Array(4)].map((_, i) => (
+        <div key={i} className="h-14 animate-pulse rounded-xl" style={{ background: "#f1f5f9" }} />
+      ))}
+    </div>
+  );
+}
+
+function ErrorBox({ msg }: { msg: string }) {
+  return (
+    <div className="rounded-xl p-3 text-xs" style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)", color: "#dc2626" }}>
+      {msg}
+    </div>
+  );
+}
+
+function CitySelect({ cities, value, onChange }: { cities: string[]; value: string; onChange: (v: string) => void }) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="rounded-xl px-3 py-1.5 text-xs focus:outline-none"
+      style={{ background: "#f8fafc", border: "1px solid rgba(0,0,0,0.12)", color: "#334155" }}
+    >
+      {cities.map((c) => <option key={c} value={c}>{c}</option>)}
+    </select>
+  );
+}
+
+type Tab = "air" | "weather" | "transit";
+
+function PublicDataTabs() {
+  const [tab, setTab] = useState<Tab>("air");
+  const [airCity, setAirCity] = useState("서울");
+  const [weatherCity, setWeatherCity] = useState("서울");
+  const [transitCity, setTransitCity] = useState("부산");
+  const { t } = useLanguage();
+
+  const { items: airItems, error: airError, isLoading: airLoading } = useAirQuality(airCity);
+  const { forecasts, error: weatherError, isLoading: weatherLoading } = useWeather(weatherCity);
+  const { items: transitItems, error: transitError, isLoading: transitLoading } = useTransit(transitCity, 1);
+
+  const TABS: { key: Tab; emoji: string; label: string }[] = [
+    { key: "air", emoji: "🌫️", label: t.airQuality },
+    { key: "weather", emoji: "🌤️", label: t.weather },
+    { key: "transit", emoji: "🚌", label: t.transit },
+  ];
+
+  return (
+    <div
+      className="rounded-2xl border p-5"
+      style={{ background: "#ffffff", borderColor: "rgba(0,0,0,0.07)", boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}
+    >
+      {/* 탭 셀렉터 */}
+      <div className="mb-4 flex rounded-xl p-1" style={{ background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.1)" }}>
+        {TABS.map(({ key, emoji, label }) => {
+          const active = tab === key;
+          return (
+            <button
+              key={key}
+              onClick={() => setTab(key)}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-medium transition-all duration-200"
+              style={{
+                background: active ? "#ffffff" : "transparent",
+                color: active ? "#6366f1" : "#94a3b8",
+                boxShadow: active ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
+              }}
+            >
+              <span>{emoji}</span>
+              <span>{label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 대기질 탭 */}
+      {tab === "air" && (
+        <div>
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-xs" style={{ color: "#94a3b8" }}>{t.airQualitySubtitle}</p>
+            <CitySelect cities={AIR_CITIES} value={airCity} onChange={setAirCity} />
+          </div>
+          {airLoading && <Skeleton />}
+          {airError && <ErrorBox msg={t.dataLoadError} />}
+          {!airLoading && !airError && (
+            <div className="space-y-2">
+              {airItems.slice(0, 6).map((item, idx) => {
+                const grade = getAqiGrade(item.khaiGrade);
+                return (
+                  <div key={idx} className="flex items-center justify-between rounded-xl border px-3 py-2"
+                    style={{ background: "#f8fafc", borderColor: "rgba(0,0,0,0.06)" }}>
+                    <span className="text-xs font-medium" style={{ color: "#1e293b" }}>{item.stationName}</span>
+                    <div className="flex items-center gap-3 text-xs" style={{ color: "#64748b" }}>
+                      <span>PM10 <strong style={{ color: "#3b82f6" }}>{item.pm10Value ?? "-"}</strong></span>
+                      <span>PM2.5 <strong style={{ color: "#f97316" }}>{item.pm25Value ?? "-"}</strong></span>
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${grade.color} ${grade.bg}`}>{grade.label}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 날씨 탭 */}
+      {tab === "weather" && (
+        <div>
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-xs" style={{ color: "#94a3b8" }}>{t.weatherSubtitle}</p>
+            <CitySelect cities={WEATHER_CITIES} value={weatherCity} onChange={setWeatherCity} />
+          </div>
+          {weatherLoading && <Skeleton />}
+          {weatherError && <ErrorBox msg={t.dataLoadError} />}
+          {!weatherLoading && !weatherError && (
+            <div className="space-y-2">
+              {forecasts.slice(0, 6).map((f, idx) => (
+                <div key={idx} className="flex items-center justify-between rounded-xl border px-3 py-2"
+                  style={{ background: "#f8fafc", borderColor: "rgba(0,0,0,0.06)" }}>
+                  <span className="text-xs font-medium" style={{ color: "#1e293b" }}>
+                    {f.date} <span style={{ color: "#94a3b8" }}>{f.time}</span>
+                  </span>
+                  <div className="flex items-center gap-3 text-xs" style={{ color: "#64748b" }}>
+                    <span>{getSkyEmoji(f.sky, f.pty)} {translateSky(f.sky, t)}</span>
+                    <span><strong style={{ color: "#d97706" }}>{f.temp}°C</strong></span>
+                    <span>🌧️ {f.pop}%</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 교통 탭 */}
+      {tab === "transit" && (
+        <div>
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-xs" style={{ color: "#94a3b8" }}>{t.transitSubtitle}</p>
+            <CitySelect cities={TRANSIT_CITIES} value={transitCity} onChange={setTransitCity} />
+          </div>
+          {transitLoading && <Skeleton />}
+          {transitError && <ErrorBox msg={t.dataLoadError} />}
+          {!transitLoading && !transitError && (
+            <div className="space-y-2">
+              {transitItems.slice(0, 6).map((item, idx) => (
+                <div key={idx} className="flex items-center justify-between rounded-xl border px-3 py-2"
+                  style={{ background: "#f8fafc", borderColor: "rgba(0,0,0,0.06)" }}>
+                  <div>
+                    <span className="text-xs font-bold" style={{ color: "#6366f1" }}>{item.routeno}</span>
+                    <span className="ml-2 rounded-full px-1.5 py-0.5 text-[10px] font-medium"
+                      style={{ background: "rgba(16,185,129,0.1)", color: "#059669" }}>
+                      {getRouteType(item.routetp, t)}
+                    </span>
+                  </div>
+                  <div className="text-[11px]" style={{ color: "#94a3b8" }}>
+                    {item.startnodenm} → {item.endnodenm}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── 로그인 모달 ────────────────────────────────────────────────────────────
 type LoginStep = "tab" | "email" | "otp";
 
 function LoginModal({ onClose }: { onClose: () => void }) {
@@ -88,7 +304,6 @@ function LoginModal({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        {/* Tabs */}
         <div className="mb-5 flex rounded-xl p-1" style={{ background: "#f1f5f9" }}>
           <button
             onClick={() => { setTab("google"); setStep("tab"); setError(""); }}
@@ -205,55 +420,13 @@ function LoginModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-const SERVICE_CARDS = [
-  {
-    href: "/dashboard/air-quality",
-    emoji: "🌫️",
-    title: "대기질 정보",
-    description: "전국 시도별 미세먼지(PM10, PM2.5), 오존, 이산화질소 등 실시간 대기질 정보",
-    source: "한국환경공단 에어코리아",
-    glowColor: "rgba(59,130,246,0.08)",
-    borderColor: "rgba(59,130,246,0.2)",
-    accentColor: "#3b82f6",
-  },
-  {
-    href: "/dashboard/weather",
-    emoji: "🌤️",
-    title: "날씨 예보",
-    description: "기상청 단기 예보 기반 지역별 기온, 강수확률, 풍속, 습도 등 날씨 정보",
-    source: "기상청 단기예보",
-    glowColor: "rgba(245,158,11,0.08)",
-    borderColor: "rgba(245,158,11,0.25)",
-    accentColor: "#d97706",
-  },
-  {
-    href: "/dashboard/transit",
-    emoji: "🚌",
-    title: "버스 노선",
-    description: "전국 주요 도시의 시내버스 노선 번호, 운행 시간, 배차 간격 등 교통 정보",
-    source: "국토교통부",
-    glowColor: "rgba(16,185,129,0.08)",
-    borderColor: "rgba(16,185,129,0.2)",
-    accentColor: "#059669",
-  },
-  {
-    href: "/dashboard/board",
-    emoji: "📋",
-    title: "게시판",
-    description: "서비스 관련 문의, 건의사항, 방명록을 남겨보세요.",
-    source: "커뮤니티",
-    glowColor: "rgba(99,102,241,0.08)",
-    borderColor: "rgba(99,102,241,0.2)",
-    accentColor: "#6366f1",
-  },
-];
-
-export function LandingPage() {
+// ── 메인 랜딩 페이지 (내부) ──────────────────────────────────────────────────
+function LandingPageInner() {
   const [showLogin, setShowLogin] = useState(false);
+  const { t } = useLanguage();
 
   return (
     <div className="min-h-screen" style={{ background: "#f8fafc", position: "relative", overflow: "hidden" }}>
-      {/* background glows */}
       <div style={{ position: "absolute", top: "10%", left: "50%", transform: "translate(-50%, -50%)", width: "700px", height: "700px", background: "radial-gradient(circle, rgba(99,102,241,0.07) 0%, rgba(59,130,246,0.04) 50%, transparent 70%)", pointerEvents: "none" }} />
 
       {/* Nav */}
@@ -284,27 +457,27 @@ export function LandingPage() {
               className="rounded-xl px-4 py-2 text-sm font-medium transition-all duration-200 hover:scale-[1.02] active:scale-95"
               style={{ background: "linear-gradient(135deg, #6366f1 0%, #3b82f6 100%)", color: "#fff", boxShadow: "0 4px 12px rgba(99,102,241,0.25)" }}
             >
-              로그인 / 회원가입
+              {t.loginBtn}
             </button>
           </div>
         </div>
       </nav>
 
-      <main className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8" style={{ position: "relative", zIndex: 1 }}>
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8" style={{ position: "relative", zIndex: 1 }}>
         {/* Hero */}
-        <div className="mb-12 text-center">
+        <div className="mb-8 text-center">
           <h1
-            className="text-4xl font-bold mb-3 sm:text-5xl"
+            className="text-3xl font-bold mb-2 sm:text-4xl"
             style={{ background: "linear-gradient(135deg, #6366f1 0%, #3b82f6 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}
           >
-            공공데이터 대시보드
+            {t.dashboard}
           </h1>
-          <p className="text-base sm:text-lg" style={{ color: "#64748b" }}>
-            한국 공공데이터포털 API 기반 실시간 정보 서비스
+          <p className="text-sm sm:text-base" style={{ color: "#64748b" }}>
+            {t.dashboardSubtitle}
           </p>
           <button
             onClick={() => setShowLogin(true)}
-            className="mt-6 inline-flex items-center gap-2 rounded-2xl px-6 py-3 text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-95"
+            className="mt-4 inline-flex items-center gap-2 rounded-2xl px-5 py-2.5 text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-95"
             style={{ background: "linear-gradient(135deg, #6366f1 0%, #3b82f6 100%)", color: "#fff", boxShadow: "0 8px 24px rgba(99,102,241,0.3)" }}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -314,41 +487,43 @@ export function LandingPage() {
           </button>
         </div>
 
-        {/* Service cards */}
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {SERVICE_CARDS.map((card) => (
+        {/* 실시간 공공데이터 탭 */}
+        <div className="mb-8">
+          <PublicDataTabs />
+        </div>
+
+        {/* 추가 서비스 안내 (게시판, 나만의영상) */}
+        <div className="grid gap-4 sm:grid-cols-2 mb-6">
+          {[
+            {
+              emoji: "📋",
+              title: t.boardTitle,
+              description: t.cardAirQualityDesc.includes("PM") ? "서비스 관련 문의, 건의사항, 방명록을 남겨보세요." : "서비스 관련 문의, 건의사항, 방명록을 남겨보세요.",
+              accentColor: "#6366f1",
+              glowColor: "rgba(99,102,241,0.08)",
+              borderColor: "rgba(99,102,241,0.2)",
+            },
+            {
+              emoji: "🎬",
+              title: t.myVideos,
+              description: t.videosSubtitle,
+              accentColor: "#e11d48",
+              glowColor: "rgba(225,29,72,0.08)",
+              borderColor: "rgba(225,29,72,0.2)",
+            },
+          ].map((card) => (
             <button
-              key={card.href}
+              key={card.title}
               onClick={() => setShowLogin(true)}
-              className="group rounded-2xl border p-6 text-left transition-all duration-300 hover:scale-[1.02] w-full"
-              style={{
-                background: "#ffffff",
-                borderColor: card.borderColor,
-                boxShadow: `0 2px 12px ${card.glowColor}`,
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = `0 8px 32px ${card.glowColor}, 0 0 0 1px ${card.borderColor}`;
-                e.currentTarget.style.background = "#f9fafb";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = `0 2px 12px ${card.glowColor}`;
-                e.currentTarget.style.background = "#ffffff";
-              }}
+              className="group rounded-2xl border p-5 text-left transition-all duration-300 hover:scale-[1.02] w-full"
+              style={{ background: "#ffffff", borderColor: card.borderColor, boxShadow: `0 2px 12px ${card.glowColor}` }}
+              onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 8px 32px ${card.glowColor}`; }}
+              onMouseLeave={(e) => { e.currentTarget.style.boxShadow = `0 2px 12px ${card.glowColor}`; }}
             >
-              <div className="mb-3 text-4xl">{card.emoji}</div>
-              <h2 className="text-base font-semibold mb-1" style={{ color: card.accentColor }}>
-                {card.title}
-              </h2>
-              <p className="text-xs leading-relaxed mb-2" style={{ color: "#64748b" }}>
-                {card.description}
-              </p>
-              <p className="text-xs" style={{ color: "#94a3b8" }}>
-                {card.source} · apis.data.go.kr
-              </p>
-              <div
-                className="mt-3 flex items-center text-xs font-medium"
-                style={{ color: "#94a3b8" }}
-              >
+              <div className="mb-2 text-3xl">{card.emoji}</div>
+              <h2 className="text-sm font-semibold mb-1" style={{ color: card.accentColor }}>{card.title}</h2>
+              <p className="text-xs leading-relaxed" style={{ color: "#64748b" }}>{card.description}</p>
+              <div className="mt-3 text-xs font-medium" style={{ color: "#94a3b8" }}>
                 <span className="group-hover:translate-x-1 transition-transform duration-200 inline-block">
                   로그인 후 이용 →
                 </span>
@@ -359,19 +534,28 @@ export function LandingPage() {
 
         {/* Data source note */}
         <div
-          className="mt-8 rounded-2xl border p-5"
+          className="rounded-2xl border p-5"
           style={{ background: "#ffffff", borderColor: "rgba(0,0,0,0.07)", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
         >
-          <h2 className="text-sm font-semibold mb-2" style={{ color: "#64748b" }}>데이터 출처</h2>
+          <h2 className="text-sm font-semibold mb-2" style={{ color: "#64748b" }}>{t.dataSources}</h2>
           <ul className="space-y-1 text-xs" style={{ color: "#94a3b8" }}>
-            <li>• 대기질: 한국환경공단 에어코리아 (apis.data.go.kr)</li>
-            <li>• 날씨: 기상청 단기예보 조회서비스 (apis.data.go.kr)</li>
-            <li>• 교통: 국토교통부 버스노선 조회서비스 (apis.data.go.kr)</li>
+            <li>• {t.dataSourceAir}</li>
+            <li>• {t.dataSourceWeather}</li>
+            <li>• {t.dataSourceTransit}</li>
           </ul>
         </div>
       </main>
 
       {showLogin && <LoginModal onClose={() => setShowLogin(false)} />}
     </div>
+  );
+}
+
+// ── 공개 래퍼 (LanguageProvider 포함) ───────────────────────────────────────
+export function LandingPage() {
+  return (
+    <LanguageProvider>
+      <LandingPageInner />
+    </LanguageProvider>
   );
 }

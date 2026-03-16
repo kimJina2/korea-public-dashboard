@@ -1,13 +1,7 @@
-import { auth } from "@/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { CITY_CODE } from "@/types/transit";
 
 export async function GET(request: NextRequest) {
-  const session = await auth();
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const { searchParams } = new URL(request.url);
   const cityName = searchParams.get("city") ?? "서울";
   const page = searchParams.get("page") ?? "1";

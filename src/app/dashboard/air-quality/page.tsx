@@ -6,6 +6,7 @@ import { useWeather } from "@/hooks/use-weather";
 import { useTransit } from "@/hooks/use-transit";
 import { getAqiGrade } from "@/lib/utils";
 import { useLanguage } from "@/contexts/language-context";
+import type { Translations } from "@/lib/i18n";
 import {
   BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -15,10 +16,25 @@ import {
 const AIR_CITIES   = ["서울","부산","대구","인천","광주","대전","울산","경기","강원","충북","충남","전북","전남","경북","경남","제주"];
 const WEATHER_CITIES = ["서울","부산","대구","인천","광주","대전","울산","제주"];
 const TRANSIT_CITIES = ["부산","대구","인천","광주","대전","울산","경기"];
-const ROUTE_TYPE: Record<string, string> = {
-  "11":"간선","12":"지선","13":"순환","14":"광역","15":"급행",
-  "16":"관광","21":"좌석","22":"일반","23":"광역","30":"마을",
-};
+
+function translateSky(sky: string | undefined, t: Translations): string {
+  if (!sky) return "";
+  switch (sky) {
+    case "맑음": return t.skyClear;
+    case "구름많음": return t.skyPartlyCloudy;
+    case "흐림": return t.skyOvercast;
+    default: return sky;
+  }
+}
+
+function getRouteType(routetp: string, t: Translations): string {
+  const map: Record<string, string> = {
+    "11": t.rtMainline, "12": t.rtBranch, "13": t.rtCircular,
+    "14": t.rtWide, "15": t.rtExpress, "16": t.rtTourist,
+    "21": t.rtSeat, "22": t.rtGeneral, "23": t.rtWide, "30": t.rtVillage,
+  };
+  return map[routetp] ?? routetp;
+}
 
 type Tab = "air" | "weather" | "transit";
 
@@ -181,7 +197,7 @@ function WeatherTab() {
           {forecasts[0] && (
             <div className="mb-4 grid grid-cols-4 gap-2">
               {[
-                { emoji: getSkyEmoji(forecasts[0].sky, forecasts[0].pty), val: `${forecasts[0].temp}°C`, label: forecasts[0].sky, color: "#d97706", bg: "rgba(245,158,11,0.06)", border: "rgba(245,158,11,0.2)" },
+                { emoji: getSkyEmoji(forecasts[0].sky, forecasts[0].pty), val: `${forecasts[0].temp}°C`, label: translateSky(forecasts[0].sky, t), color: "#d97706", bg: "rgba(245,158,11,0.06)", border: "rgba(245,158,11,0.2)" },
                 { emoji: "🌧️", val: `${forecasts[0].pop}%`, label: t.precipProb, color: "#3b82f6", bg: "rgba(59,130,246,0.06)", border: "rgba(59,130,246,0.2)" },
                 { emoji: "💧", val: `${forecasts[0].humidity}%`, label: t.humidity, color: "#0891b2", bg: "rgba(6,182,212,0.06)", border: "rgba(6,182,212,0.2)" },
                 { emoji: "💨", val: `${forecasts[0].windSpeed}m/s`, label: t.windSpeed, color: "#475569", bg: "#f8fafc", border: "rgba(0,0,0,0.1)" },
@@ -221,7 +237,7 @@ function WeatherTab() {
                 style={{ background: "#fff", borderColor: "rgba(0,0,0,0.07)", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-sm font-semibold" style={{ color: "#1e293b" }}>{f.date} <span style={{ color: "#94a3b8" }}>{f.time}</span></span>
-                  <span>{getSkyEmoji(f.sky, f.pty)} <span className="text-xs" style={{ color: "#94a3b8" }}>{f.sky}</span></span>
+                  <span>{getSkyEmoji(f.sky, f.pty)} <span className="text-xs" style={{ color: "#94a3b8" }}>{translateSky(f.sky, t)}</span></span>
                 </div>
                 <div className="grid grid-cols-4 gap-1 text-xs" style={{ color: "#64748b" }}>
                   <span><span style={{ color: "#94a3b8" }}>{t.tempHeader} </span><strong style={{ color: "#d97706" }}>{f.temp}°C</strong></span>
@@ -277,7 +293,7 @@ function TransitTab() {
                   <span className="text-sm font-bold" style={{ color: "#6366f1" }}>{item.routeno}</span>
                   <span className="rounded-full px-2 py-0.5 text-xs font-medium"
                     style={{ background: "rgba(16,185,129,0.1)", color: "#059669" }}>
-                    {ROUTE_TYPE[item.routetp] ?? item.routetp}
+                    {getRouteType(item.routetp, t)}
                   </span>
                 </div>
                 <div className="text-xs mb-1.5" style={{ color: "#475569" }}>
