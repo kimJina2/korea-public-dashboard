@@ -19,7 +19,7 @@ const securityHeaders = [
       "img-src 'self' data: blob: https://lh3.googleusercontent.com https://avatars.githubusercontent.com",
       "font-src 'self'",
       "media-src 'self' blob:",
-      "connect-src 'self' https://apis.data.go.kr https://api.resend.com https://huggingface.co https://*.huggingface.co https://hf.co https://*.hf.co https://cdn.jsdelivr.net",
+      "connect-src 'self' data: blob: https://apis.data.go.kr https://api.resend.com https://huggingface.co https://*.huggingface.co https://hf.co https://*.hf.co https://cdn.jsdelivr.net",
       "worker-src 'self' blob:",
       "frame-ancestors 'none'",
     ].join("; "),
