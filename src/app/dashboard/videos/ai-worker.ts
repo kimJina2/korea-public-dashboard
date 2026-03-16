@@ -42,10 +42,19 @@ ctx.addEventListener("message", async (event: MessageEvent) => {
         dtype: "fp16",
         device: "webgpu",
         progress_callback: (info: any) => {
-          if (info.status === "downloading" && info.progress !== undefined) {
-            ctx.postMessage({ type: "progress", progress: info.progress });
+          if (info.status === "downloading") {
+            const loaded = info.loaded ?? 0;
+            const total = info.total ?? 0;
+            const loadedMB = (loaded / 1024 / 1024).toFixed(1);
+            const totalMB = total > 0 ? `/${(total / 1024 / 1024).toFixed(0)}MB` : "";
+            const pct = total > 0 ? Math.round((loaded / total) * 100) : 0;
+            ctx.postMessage({
+              type: "status",
+              message: `다운로드 중... ${loadedMB}MB${totalMB} (${pct}%)`,
+            });
+            ctx.postMessage({ type: "progress", progress: total > 0 ? loaded / total : 0 });
           } else if (info.status === "loading") {
-            ctx.postMessage({ type: "status", message: `로딩 중: ${info.file ?? ""}` });
+            ctx.postMessage({ type: "status", message: `모델 로딩 중...` });
           }
         },
       });
