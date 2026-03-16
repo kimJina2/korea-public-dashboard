@@ -21,32 +21,32 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const [lang, setLang] = useState<Lang>("ko");
 
   useEffect(() => {
-    // 프로필 API로 로그인 여부 확인 후 언어 적용
-    fetch("/api/profile")
-      .then((r) => {
-        if (r.status === 401) {
+    // NextAuth 세션 확인 (비로그인 시 401 없이 200으로 {} 반환)
+    fetch("/api/auth/session")
+      .then((r) => r.json())
+      .then((session) => {
+        if (!session?.user) {
           // 비로그인 상태 → localStorage 초기화 후 한국어 고정
           localStorage.removeItem("jina_lang");
           setLang("ko");
-          return null;
+          return;
         }
-        return r.json();
-      })
-      .then((data) => {
-        if (!data) return;
-        if (data?.language && data.language in translations) {
-          setLang(data.language as Lang);
-          localStorage.setItem("jina_lang", data.language);
-        } else {
-          // 서버에 언어 설정 없으면 localStorage 값 적용
-          const saved = localStorage.getItem("jina_lang");
-          if (saved && saved in translations) {
-            setLang(saved as Lang);
-          }
-        }
+        // 로그인 상태 → 프로필에서 언어 설정 로드
+        return fetch("/api/profile")
+          .then((r) => r.json())
+          .then((data) => {
+            if (data?.language && data.language in translations) {
+              setLang(data.language as Lang);
+              localStorage.setItem("jina_lang", data.language);
+            } else {
+              const saved = localStorage.getItem("jina_lang");
+              if (saved && saved in translations) {
+                setLang(saved as Lang);
+              }
+            }
+          });
       })
       .catch(() => {
-        // 네트워크 오류 시 localStorage 값 유지
         const saved = localStorage.getItem("jina_lang");
         if (saved && saved in translations) {
           setLang(saved as Lang);
