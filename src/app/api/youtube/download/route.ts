@@ -4,27 +4,31 @@ import path from "path";
 import fs from "fs";
 import { auth } from "@/auth";
 
+export const maxDuration = 300; // Vercel Pro: 5분 타임아웃
+
 function getVideosDir() {
-  const dir = path.join(process.cwd(), "tmp_videos");
+  const dir = path.join("/tmp", "yt_videos");
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   return dir;
 }
 
 async function getYtDlp(): Promise<YTDlpWrap> {
-  const binaryDir = path.join(process.cwd(), ".ytdlp");
+  const binaryDir = path.join("/tmp", "ytdlp_bin");
   if (!fs.existsSync(binaryDir)) fs.mkdirSync(binaryDir, { recursive: true });
 
   const ext = process.platform === "win32" ? ".exe" : "";
   const binaryPath = path.join(binaryDir, `yt-dlp${ext}`);
 
-  const ytdlp = new YTDlpWrap(binaryPath);
-
   if (!fs.existsSync(binaryPath)) {
     // Auto-download latest yt-dlp binary
     await YTDlpWrap.downloadFromGithub(binaryPath);
+    // Make executable on Unix/Linux (Vercel)
+    if (process.platform !== "win32") {
+      fs.chmodSync(binaryPath, 0o755);
+    }
   }
 
-  return ytdlp;
+  return new YTDlpWrap(binaryPath);
 }
 
 export async function POST(request: Request) {
