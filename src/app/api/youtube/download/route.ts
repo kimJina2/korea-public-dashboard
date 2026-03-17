@@ -90,6 +90,6 @@ export async function POST(request: Request) {
       userMsg = "저작권 문제로 다운로드할 수 없는 영상입니다.";
     }
 
-    return Response.json({ error: userMsg }, { status: 500 });
+    return Response.json({ error: userMsg, errorCode: msg }, { status: 500 });
   }
 }
