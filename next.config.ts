@@ -27,7 +27,7 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["nodemailer", "yt-dlp-wrap"],
+  serverExternalPackages: ["nodemailer", "yt-dlp-wrap", "youtubei.js"],
   async headers() {
     return [
       {
