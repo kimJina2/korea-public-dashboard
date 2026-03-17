@@ -1,10 +1,11 @@
 import { Innertube, Platform } from "youtubei.js";
 import vm from "node:vm";
+import { pipeline } from "node:stream/promises";
 import { randomUUID } from "crypto";
 import path from "path";
 import fs from "fs";
 import os from "os";
-import { Readable } from "stream";
+import { Readable } from "node:stream";
 import { auth } from "@/auth";
 
 export const maxDuration = 300;
@@ -80,13 +81,9 @@ export async function POST(request: Request) {
       format: "any",
     });
 
-    const writeStream = fs.createWriteStream(outputPath);
     const readable = Readable.fromWeb(stream as Parameters<typeof Readable.fromWeb>[0]);
-    await new Promise<void>((resolve, reject) => {
-      readable.pipe(writeStream);
-      writeStream.on("finish", resolve);
-      writeStream.on("error", reject);
-      readable.on("error", reject);
+    await pipeline(readable, fs.createWriteStream(outputPath)).catch((err: NodeJS.ErrnoException) => {
+      if (err.code !== "ERR_INVALID_STATE") throw err;
     });
 
     if (!fs.existsSync(outputPath) || fs.statSync(outputPath).size === 0) {
