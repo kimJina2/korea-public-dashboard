@@ -104,12 +104,14 @@ export async function POST(request: Request) {
       if (info?.title) title = info.title;
     } catch { /* optional */ }
 
-    // Download: single-stream formats only (no ffmpeg merge needed)
+    // Download: iOS client to bypass bot detection, node as JS runtime
     await ytdlp.execPromise([
       url,
       "-f", "best[ext=mp4]/best[height<=720][ext=mp4]/best",
       "--no-playlist",
       "--js-runtimes", "node",
+      "--extractor-args", "youtube:player_client=ios,web",
+      "--no-check-certificates",
       "-o", outputPath,
     ]);
 
