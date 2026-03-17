@@ -1,5 +1,5 @@
 import { Innertube, Platform } from "youtubei.js";
-import { createContext, runInContext } from "vm";
+import vm from "node:vm";
 import { randomUUID } from "crypto";
 import path from "path";
 import fs from "fs";
@@ -9,20 +9,15 @@ import { auth } from "@/auth";
 
 export const maxDuration = 300;
 
-// Node.js vm 모듈을 JS evaluator로 등록 (n-parameter 디코딩용)
-// youtubei.js는 기본적으로 evaluator를 제공하지 않아 서버 환경에서 필요
-let evaluatorReady = false;
-function setupEvaluator() {
-  if (evaluatorReady) return;
-  evaluatorReady = true;
-  Platform.load({
-    ...Platform.shim,
-    eval: (data, env) => {
-      const ctx = createContext({ ...env, __jsExtractorGlobal: globalThis });
-      return runInContext("(function() {" + data.output + "})()", ctx);
-    },
-  });
-}
+// Node.js vm evaluator를 모듈 로드 시점에 즉시 등록 (import 직후)
+// youtubei.js node.js platform 초기화 이후 override하여 n-parameter 디코딩 활성화
+Platform.load({
+  ...Platform.shim,
+  eval: (data: { output: string; exported: string[] }, env: Record<string, unknown>) => {
+    const ctx = vm.createContext({ ...env, __jsExtractorGlobal: globalThis });
+    return vm.runInContext("(function() {" + data.output + "})()", ctx);
+  },
+});
 
 function getVideosDir() {
   const dir = path.join(os.tmpdir(), "yt_videos");
@@ -61,8 +56,6 @@ export async function POST(request: Request) {
   if (!ytRegex.test(url)) {
     return Response.json({ error: "유효하지 않은 YouTube URL입니다" }, { status: 400 });
   }
-
-  setupEvaluator();
 
   const id = randomUUID();
   const videosDir = getVideosDir();
