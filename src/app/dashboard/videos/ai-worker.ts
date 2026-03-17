@@ -37,10 +37,20 @@ ctx.addEventListener("message", async (event: MessageEvent) => {
       ctx.postMessage({ type: "status", message: "프로세서 로딩 중..." });
       processor = await AutoProcessor.from_pretrained(MODEL_ID);
 
-      ctx.postMessage({ type: "status", message: "모델 다운로드 중... (~256MB, 최초 1회)" });
+      // WebGPU 지원 여부 확인 후 폴백
+      const hasWebGPU = typeof navigator !== "undefined" && !!("gpu" in navigator && (navigator as any).gpu);
+      const device = hasWebGPU ? "webgpu" : "wasm";
+      const dtype = hasWebGPU ? "fp16" : "q4";
+
+      ctx.postMessage({
+        type: "status",
+        message: hasWebGPU
+          ? "모델 다운로드 중... (~256MB, 최초 1회)"
+          : "모델 다운로드 중... (~64MB, CPU 모드, 최초 1회)",
+      });
       model = await (AutoModelForVision2Seq as any).from_pretrained(MODEL_ID, {
-        dtype: "fp16",
-        device: "webgpu",
+        dtype,
+        device,
         progress_callback: (info: any) => {
           if (info.status === "downloading") {
             const loaded = info.loaded ?? 0;

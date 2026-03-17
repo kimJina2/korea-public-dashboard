@@ -165,13 +165,13 @@ export default function VideosPage() {
         </p>
       </div>
 
-      {/* WebGPU Warning */}
+      {/* WebGPU Warning — 경고만 표시, 기능은 CPU 모드로 사용 가능 */}
       {!webgpuSupported && (
         <div
           className="mb-4 rounded-xl px-4 py-3 text-sm"
-          style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#dc2626" }}
+          style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)", color: "#b45309" }}
         >
-          ⚠️ {t.webgpuNotSupported}
+          ⚠️ WebGPU 미지원 환경입니다. CPU 모드로 동작하며 속도가 느릴 수 있습니다.
         </div>
       )}
 
@@ -220,7 +220,7 @@ export default function VideosPage() {
                 ? modelMessage || t.modelLoading
                 : modelStatus === "error"
                 ? t.modelError
-                : "Qwen3.5 Vision 0.8B (WebGPU)"}
+                : webgpuSupported ? "SmolVLM 256M (WebGPU)" : "SmolVLM 256M (CPU)"}
             </span>
             {modelStatus === "loading" && modelProgress > 0 && (
               <span className="text-xs flex-shrink-0" style={{ color: "#94a3b8" }}>
@@ -231,7 +231,7 @@ export default function VideosPage() {
           {modelStatus !== "loading" && (
             <button
               onClick={loadModel}
-              disabled={!webgpuSupported}
+              disabled={false}
               className="flex-shrink-0 rounded-xl px-3 py-1.5 text-xs font-semibold text-white transition-opacity duration-150 disabled:opacity-40"
               style={{ background: "linear-gradient(135deg, #6366f1 0%, #3b82f6 100%)" }}
               onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.opacity = "0.85")}
