@@ -1,4 +1,5 @@
-import { Innertube, ClientType } from "youtubei.js";
+import { Innertube, Platform } from "youtubei.js";
+import { createContext, runInContext } from "vm";
 import { randomUUID } from "crypto";
 import path from "path";
 import fs from "fs";
@@ -7,6 +8,21 @@ import { Readable } from "stream";
 import { auth } from "@/auth";
 
 export const maxDuration = 300;
+
+// Node.js vm 모듈을 JS evaluator로 등록 (n-parameter 디코딩용)
+// youtubei.js는 기본적으로 evaluator를 제공하지 않아 서버 환경에서 필요
+let evaluatorReady = false;
+function setupEvaluator() {
+  if (evaluatorReady) return;
+  evaluatorReady = true;
+  Platform.load({
+    ...Platform.shim,
+    eval: (data, env) => {
+      const ctx = createContext({ ...env, __jsExtractorGlobal: globalThis });
+      return runInContext("(function() {" + data.output + "})()", ctx);
+    },
+  });
+}
 
 function getVideosDir() {
   const dir = path.join(os.tmpdir(), "yt_videos");
@@ -20,7 +36,7 @@ function extractVideoId(url: string): string {
   return match[1];
 }
 
-/** Netscape cookies.txt → "NAME=VALUE; NAME2=VALUE2" 형식으로 변환 */
+/** Netscape cookies.txt → "NAME=VALUE; NAME2=VALUE2" 형식 변환 */
 function parseCookieTxt(raw: string): string {
   return raw
     .split("\n")
@@ -28,45 +44,10 @@ function parseCookieTxt(raw: string): string {
     .map((line) => {
       const parts = line.split("\t");
       if (parts.length < 7) return null;
-      const name = parts[5].trim();
-      const value = parts[6].trim();
-      return `${name}=${value}`;
+      return `${parts[5].trim()}=${parts[6].trim()}`;
     })
     .filter(Boolean)
     .join("; ");
-}
-
-async function tryDownload(
-  videoId: string,
-  outputPath: string,
-  clientType: ClientType,
-  cookie?: string
-) {
-  const yt = await Innertube.create({
-    client_type: clientType,
-    generate_session_locally: true,
-    ...(cookie ? { cookie } : {}),
-  });
-
-  const info = await yt.getBasicInfo(videoId);
-  const title = info.basic_info.title ?? "영상";
-
-  const stream = await yt.download(videoId, {
-    type: "video+audio",
-    quality: "best",
-    format: "mp4",
-  });
-
-  const writeStream = fs.createWriteStream(outputPath);
-  const readable = Readable.fromWeb(stream as Parameters<typeof Readable.fromWeb>[0]);
-  await new Promise<void>((resolve, reject) => {
-    readable.pipe(writeStream);
-    writeStream.on("finish", resolve);
-    writeStream.on("error", reject);
-    readable.on("error", reject);
-  });
-
-  return title;
 }
 
 export async function POST(request: Request) {
@@ -81,28 +62,39 @@ export async function POST(request: Request) {
     return Response.json({ error: "유효하지 않은 YouTube URL입니다" }, { status: 400 });
   }
 
+  setupEvaluator();
+
   const id = randomUUID();
   const videosDir = getVideosDir();
   const outputPath = path.join(videosDir, `${id}.mp4`);
 
-  // 환경변수에서 쿠키 로드 (Netscape 형식 → HTTP Cookie 헤더 형식)
   const rawCookies = process.env.YOUTUBE_COOKIES ?? "";
   const cookie = rawCookies.trim() ? parseCookieTxt(rawCookies) : undefined;
 
   try {
     const videoId = extractVideoId(url);
 
-    // 1순위: IOS 클라이언트 + 쿠키
-    // 2순위: WEB 클라이언트 + 쿠키 (폴백)
-    let title = "영상";
-    try {
-      title = await tryDownload(videoId, outputPath, ClientType.IOS, cookie);
-    } catch (e1) {
-      const m1 = e1 instanceof Error ? e1.message : String(e1);
-      console.warn("IOS client failed, trying WEB:", m1);
-      if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
-      title = await tryDownload(videoId, outputPath, ClientType.WEB, cookie);
-    }
+    const yt = await Innertube.create({
+      ...(cookie ? { cookie } : {}),
+    });
+
+    const info = await yt.getBasicInfo(videoId);
+    const title = info.basic_info.title ?? "영상";
+
+    const stream = await yt.download(videoId, {
+      type: "video+audio",
+      quality: "best",
+      format: "any",
+    });
+
+    const writeStream = fs.createWriteStream(outputPath);
+    const readable = Readable.fromWeb(stream as Parameters<typeof Readable.fromWeb>[0]);
+    await new Promise<void>((resolve, reject) => {
+      readable.pipe(writeStream);
+      writeStream.on("finish", resolve);
+      writeStream.on("error", reject);
+      readable.on("error", reject);
+    });
 
     if (!fs.existsSync(outputPath) || fs.statSync(outputPath).size === 0) {
       return Response.json({ error: "다운로드 파일을 찾을 수 없습니다" }, { status: 500 });
