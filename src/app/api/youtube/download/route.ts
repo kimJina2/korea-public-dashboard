@@ -94,31 +94,47 @@ export async function POST(request: Request) {
   const videosDir = getVideosDir();
   const outputPath = path.join(videosDir, `${id}.mp4`);
 
+  // YOUTUBE_COOKIES 환경변수가 있으면 임시 쿠키 파일 생성
+  let cookiesPath: string | null = null;
+  if (process.env.YOUTUBE_COOKIES) {
+    cookiesPath = path.join(os.tmpdir(), `yt_cookies_${randomUUID()}.txt`);
+    fs.writeFileSync(cookiesPath, process.env.YOUTUBE_COOKIES, "utf8");
+  }
+
   try {
     const ytdlp = await getYtDlp();
 
     // Get title
     let title = "영상";
     try {
-      const info = await ytdlp.getVideoInfo(url);
+      const titleArgs = [
+        url, "--dump-json", "--no-playlist",
+        "--extractor-args", "youtube:player_client=tv_embedded,ios,mweb",
+        "--no-check-certificates",
+        ...(cookiesPath ? ["--cookies", cookiesPath] : []),
+      ];
+      const infoJson = await ytdlp.execPromise(titleArgs);
+      const info = JSON.parse(infoJson);
       if (info?.title) title = info.title;
     } catch { /* optional */ }
 
-    // Download: iOS client to bypass bot detection, node as JS runtime
-    await ytdlp.execPromise([
+    // Download: tv_embedded client is less bot-flagged on server IPs
+    const dlArgs = [
       url,
       "-f", "best[ext=mp4]/best[height<=720][ext=mp4]/best",
       "--no-playlist",
-      "--js-runtimes", "node",
-      "--extractor-args", "youtube:player_client=ios,web",
+      "--extractor-args", "youtube:player_client=tv_embedded,ios,mweb",
       "--no-check-certificates",
       "-o", outputPath,
-    ]);
+    ];
+    if (cookiesPath) dlArgs.push("--cookies", cookiesPath);
+    await ytdlp.execPromise(dlArgs);
 
     if (!fs.existsSync(outputPath)) {
       return Response.json({ error: "다운로드 파일을 찾을 수 없습니다" }, { status: 500 });
     }
 
+    if (cookiesPath && fs.existsSync(cookiesPath)) fs.unlinkSync(cookiesPath);
     return Response.json({
       id,
       filename: `${id}.mp4`,
@@ -129,6 +145,7 @@ export async function POST(request: Request) {
     const msg = error instanceof Error ? error.message : String(error);
     console.error("yt-dlp error:", msg);
     if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
+    if (cookiesPath && fs.existsSync(cookiesPath)) fs.unlinkSync(cookiesPath);
 
     // 친절한 에러 메시지 변환
     let userMsg = "다운로드에 실패했습니다. 잠시 후 다시 시도해주세요.";
