@@ -12,6 +12,7 @@ export const maxDuration = 300;
 
 // Node.js vm evaluator를 모듈 로드 시점에 즉시 등록 (import 직후)
 // youtubei.js node.js platform 초기화 이후 override하여 n-parameter 디코딩 활성화
+
 Platform.load({
   ...Platform.shim,
   eval: (data: { output: string; exported: string[] }, env: Record<string, unknown>) => {
