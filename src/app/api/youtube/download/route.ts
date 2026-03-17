@@ -20,10 +20,32 @@ function extractVideoId(url: string): string {
   return match[1];
 }
 
-async function tryDownload(videoId: string, outputPath: string, clientType: ClientType) {
+/** Netscape cookies.txt → "NAME=VALUE; NAME2=VALUE2" 형식으로 변환 */
+function parseCookieTxt(raw: string): string {
+  return raw
+    .split("\n")
+    .filter((line) => line && !line.startsWith("#"))
+    .map((line) => {
+      const parts = line.split("\t");
+      if (parts.length < 7) return null;
+      const name = parts[5].trim();
+      const value = parts[6].trim();
+      return `${name}=${value}`;
+    })
+    .filter(Boolean)
+    .join("; ");
+}
+
+async function tryDownload(
+  videoId: string,
+  outputPath: string,
+  clientType: ClientType,
+  cookie?: string
+) {
   const yt = await Innertube.create({
     client_type: clientType,
     generate_session_locally: true,
+    ...(cookie ? { cookie } : {}),
   });
 
   const info = await yt.getBasicInfo(videoId);
@@ -63,18 +85,23 @@ export async function POST(request: Request) {
   const videosDir = getVideosDir();
   const outputPath = path.join(videosDir, `${id}.mp4`);
 
+  // 환경변수에서 쿠키 로드 (Netscape 형식 → HTTP Cookie 헤더 형식)
+  const rawCookies = process.env.YOUTUBE_COOKIES ?? "";
+  const cookie = rawCookies.trim() ? parseCookieTxt(rawCookies) : undefined;
+
   try {
     const videoId = extractVideoId(url);
 
-    // IOS 클라이언트 → 실패 시 TV_EMBEDDED 클라이언트로 재시도
+    // 1순위: IOS 클라이언트 + 쿠키
+    // 2순위: WEB 클라이언트 + 쿠키 (폴백)
     let title = "영상";
     try {
-      title = await tryDownload(videoId, outputPath, ClientType.IOS);
+      title = await tryDownload(videoId, outputPath, ClientType.IOS, cookie);
     } catch (e1) {
       const m1 = e1 instanceof Error ? e1.message : String(e1);
-      console.warn("IOS client failed, trying TV_EMBEDDED:", m1);
+      console.warn("IOS client failed, trying WEB:", m1);
       if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
-      title = await tryDownload(videoId, outputPath, ClientType.TV_EMBEDDED);
+      title = await tryDownload(videoId, outputPath, ClientType.WEB, cookie);
     }
 
     if (!fs.existsSync(outputPath) || fs.statSync(outputPath).size === 0) {
