@@ -1,4 +1,6 @@
 import { Innertube, Platform } from "youtubei.js";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+import { BG } from "bgutils-js";
 import vm from "node:vm";
 import { pipeline } from "node:stream/promises";
 import { randomUUID } from "crypto";
@@ -9,9 +11,6 @@ import { Readable } from "node:stream";
 import { auth } from "@/auth";
 
 export const maxDuration = 300;
-
-// Node.js vm evaluator를 모듈 로드 시점에 즉시 등록 (import 직후)
-// youtubei.js node.js platform 초기화 이후 override하여 n-parameter 디코딩 활성화
 
 Platform.load({
   ...Platform.shim,
@@ -33,9 +32,10 @@ function extractVideoId(url: string): string {
   return match[1];
 }
 
-/** Netscape cookies.txt → "NAME=VALUE; NAME2=VALUE2" 형식 변환 */
+/** Netscape cookies.txt → "NAME=VALUE; NAME2=VALUE2" */
 function parseCookieTxt(raw: string): string {
-  return raw
+  const normalized = raw.replace(/\\n/g, "\n").replace(/\\t/g, "\t");
+  return normalized
     .split("\n")
     .filter((line) => line && !line.startsWith("#"))
     .map((line) => {
@@ -46,6 +46,9 @@ function parseCookieTxt(raw: string): string {
     .filter(Boolean)
     .join("; ");
 }
+
+const BROWSER_UA =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -65,16 +68,118 @@ export async function POST(request: Request) {
 
   const rawCookies = process.env.YOUTUBE_COOKIES ?? "";
   const cookie = rawCookies.trim() ? parseCookieTxt(rawCookies) : undefined;
+  console.log("[ytdl] cookie:", cookie ? `${cookie.split(";").length} pairs` : "none");
 
   try {
     const videoId = extractVideoId(url);
 
+    // Custom fetch: inject cookies + UA into CDN requests, log 403 body for diagnosis
+    const customFetch: typeof fetch = async (input, init) => {
+      const reqUrl =
+        typeof input === "string" ? input : input instanceof URL ? input.href : (input as Request).url;
+      const isGooglevideo = reqUrl.includes("googlevideo.com");
+
+      if (isGooglevideo) {
+        // Add alr=yes to allow CDN redirects, cookies, and browser UA
+        const cdnUrl = reqUrl.includes("alr=") ? reqUrl : reqUrl + "&alr=yes";
+        const headers = new Headers((init?.headers as HeadersInit) ?? {});
+        if (cookie) headers.set("Cookie", cookie);
+        headers.set("User-Agent", BROWSER_UA);
+        headers.set("Accept-Encoding", "identity");
+        const res = await fetch(cdnUrl, { ...init, headers });
+        if (!res.ok) {
+          const errBody = await res.clone().text();
+          console.error("[ytdl] CDN", res.status, cdnUrl.substring(0, 120));
+          console.error("[ytdl] CDN body:", errBody.substring(0, 300));
+        }
+        return res;
+      }
+      return fetch(input, init);
+    };
+
+    // Step 1: create Innertube to get visitor_data
+    const ytInit = await Innertube.create({
+      ...(cookie ? { cookie } : {}),
+      fetch: customFetch,
+    });
+    const visitorData = ytInit.session.context.client.visitorData ?? "";
+    console.log("[ytdl] visitorData:", visitorData.substring(0, 20));
+
+    // Step 2: generate full PoToken via BotGuard challenge
+    let poToken: string | undefined;
+    try {
+      const bgConfig = {
+        fetch: customFetch as typeof globalThis.fetch,
+        globalObj: globalThis,
+        identifier: visitorData,
+        requestKey: "O43z0dpjhgX20SCx4KAo",
+      };
+      const challenge = await BG.Challenge.create(bgConfig);
+      if (challenge?.program) {
+        const interpreterScript =
+          challenge.interpreterJavascript?.privateDoNotAccessOrElseSafeScriptWrappedValue;
+        if (interpreterScript) {
+          // BotGuard interpreter + PoToken generation both need browser globals.
+          // Mock them on globalThis before running, clean up after.
+          const g = globalThis as Record<string, unknown>;
+          const addedKeys: string[] = [];
+          const mock = (key: string, val: unknown) => {
+            if (!(key in g)) { g[key] = val; addedKeys.push(key); }
+          };
+          mock("window", globalThis);
+          mock("document", {
+            createElement: () => ({ style: {}, setAttribute: () => {}, appendChild: () => {}, childNodes: [] }),
+            createTextNode: () => ({ nodeType: 3 }),
+            createComment: () => ({}),
+            body: { appendChild: () => {}, insertBefore: () => {} },
+            head: { appendChild: () => {} },
+            getElementById: () => null,
+            querySelectorAll: () => [],
+            addEventListener: () => {},
+          });
+          mock("navigator", { userAgent: BROWSER_UA, language: "ko-KR", languages: ["ko-KR", "ko"] });
+          mock("location", { href: "https://www.youtube.com/", hostname: "www.youtube.com", origin: "https://www.youtube.com" });
+          mock("performance", { now: () => Date.now(), mark: () => {}, measure: () => {} });
+          mock("screen", { width: 1920, height: 1080 });
+          try {
+            vm.runInThisContext(interpreterScript);
+            console.log("[ytdl] interpreter executed, VM type:", typeof g[challenge.globalName]);
+            // PoToken.generate uses the VM — keep mocks alive through this call
+            const result = await BG.PoToken.generate({
+              program: challenge.program,
+              globalName: challenge.globalName,
+              bgConfig,
+            });
+            poToken = result.poToken;
+            console.log("[ytdl] poToken generated:", poToken?.substring(0, 20));
+          } catch (e) {
+            console.warn("[ytdl] PoToken error:", e instanceof Error ? e.message : String(e));
+          } finally {
+            for (const key of addedKeys) delete g[key];
+            // Clean up VM registered by interpreter
+            if (challenge.globalName in g) delete g[challenge.globalName];
+          }
+        } else {
+          console.warn("[ytdl] no interpreter script in challenge");
+        }
+      } else {
+        console.warn("[ytdl] BG.Challenge returned no program");
+      }
+    } catch (e) {
+      console.warn("[ytdl] PoToken setup failed:", e instanceof Error ? e.message : String(e));
+    }
+
+    // Step 3: recreate Innertube with visitor_data + po_token
     const yt = await Innertube.create({
       ...(cookie ? { cookie } : {}),
+      ...(visitorData ? { visitor_data: visitorData } : {}),
+      ...(poToken ? { po_token: poToken } : {}),
+      fetch: customFetch,
     });
 
     const info = await yt.getBasicInfo(videoId);
     const title = info.basic_info.title ?? "영상";
+    console.log("[ytdl] title:", title);
 
     const stream = await yt.download(videoId, {
       type: "video+audio",
@@ -103,12 +208,7 @@ export async function POST(request: Request) {
     if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
 
     let userMsg = "다운로드에 실패했습니다. 잠시 후 다시 시도해주세요.";
-    if (
-      msg.includes("Sign in") ||
-      msg.includes("not a bot") ||
-      msg.includes("LOGIN_REQUIRED") ||
-      msg.toLowerCase().includes("login required")
-    ) {
+    if (msg.includes("Sign in") || msg.includes("not a bot") || msg.includes("LOGIN_REQUIRED") || msg.toLowerCase().includes("login required")) {
       userMsg = "YouTube가 서버 접근을 차단했습니다. 잠시 후 다시 시도하거나 다른 영상을 이용해주세요.";
     } else if (msg.includes("Private") || msg.includes("private")) {
       userMsg = "비공개 영상은 다운로드할 수 없습니다.";
@@ -118,6 +218,8 @@ export async function POST(request: Request) {
       userMsg = "연령 제한 영상은 다운로드할 수 없습니다.";
     } else if (msg.includes("copyright") || msg.includes("removed")) {
       userMsg = "저작권 문제로 다운로드할 수 없는 영상입니다.";
+    } else if (msg.includes("non 2xx") || msg.includes("403")) {
+      userMsg = "YouTube CDN이 다운로드를 차단했습니다. 쿠키를 갱신하거나 잠시 후 다시 시도해주세요.";
     }
 
     return Response.json({ error: userMsg }, { status: 500 });
