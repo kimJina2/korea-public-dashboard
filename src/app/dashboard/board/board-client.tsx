@@ -26,6 +26,7 @@ type Post = {
   authorImage: string | null;
   title: string | null;
   content: string;
+  serviceUrl: string | null;
   boardType: string;
   visibility: string;
   answerStatus: string;
@@ -571,10 +572,11 @@ function AdminStatusPanel({ post, onUpdated }: { post: Post; onUpdated: (updates
 // ─── PostListItem ─────────────────────────────────────────────────────────────
 
 function PostListItem({
-  post, isAdmin, onSelect, onDelete, onLike,
+  post, isAdmin, onSelect, onDelete, onLike, onEdit,
 }: {
   post: Post; isAdmin: boolean;
   onSelect: (id: number) => void; onDelete: (id: number) => void; onLike: (id: number) => void;
+  onEdit: (id: number) => void;
 }) {
   const { t } = useLanguage();
   const [hearts, setHearts] = useState<HeartParticle[]>([]);
@@ -654,19 +656,34 @@ function PostListItem({
                   </div>
                   <p className="text-xs" style={{ color: "#94a3b8" }}>{timeAgoI18n(post.createdAt, t)}</p>
                 </div>
-                {canDelete && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); if (window.confirm(t.deletePost)) onDelete(post.id); }}
-                    className="rounded-lg p-1.5 transition-all duration-150 flex-shrink-0"
-                    style={{ color: "#cbd5e1" }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(239,68,68,0.08)"; e.currentTarget.style.color = "#ef4444"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#cbd5e1"; }}
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
-                )}
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  {post.isOwner && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onEdit(post.id); }}
+                      className="rounded-lg p-1.5 transition-all duration-150"
+                      style={{ color: "#cbd5e1" }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(99,102,241,0.08)"; e.currentTarget.style.color = "#6366f1"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#cbd5e1"; }}
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); if (window.confirm(t.deletePost)) onDelete(post.id); }}
+                      className="rounded-lg p-1.5 transition-all duration-150"
+                      style={{ color: "#cbd5e1" }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(239,68,68,0.08)"; e.currentTarget.style.color = "#ef4444"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#cbd5e1"; }}
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -725,10 +742,11 @@ function PostListItem({
 // ─── PostRowItem (list view) ──────────────────────────────────────────────────
 
 function PostRowItem({
-  post, isAdmin, onSelect, onDelete, onLike,
+  post, isAdmin, onSelect, onDelete, onLike, onEdit,
 }: {
   post: Post; isAdmin: boolean;
   onSelect: (id: number) => void; onDelete: (id: number) => void; onLike: (id: number) => void;
+  onEdit: (id: number) => void;
 }) {
   const { t } = useLanguage();
   const typeColor = BOARD_TYPE_COLORS[post.boardType] ?? BOARD_TYPE_COLORS.normal;
@@ -791,6 +809,19 @@ function PostRowItem({
           <span>💬</span>
           <span>{post.commentCount}</span>
         </span>
+        {post.isOwner && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onEdit(post.id); }}
+            className="opacity-0 group-hover:opacity-100 rounded-lg p-1 transition-all duration-150"
+            style={{ color: "#cbd5e1" }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = "#6366f1"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = "#cbd5e1"; }}
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+          </button>
+        )}
         {canDelete && (
           <button
             onClick={(e) => { e.stopPropagation(); if (window.confirm(t.deletePost)) onDelete(post.id); }}
@@ -812,15 +843,16 @@ function PostRowItem({
 // ─── DetailView ───────────────────────────────────────────────────────────────
 
 function DetailView({
-  postId, currentUser, isAdmin, onBack, onDelete, onLikeChange,
+  postId, currentUser, isAdmin, initialEditing = false, onBack, onDelete, onLikeChange,
 }: {
-  postId: number; currentUser: CurrentUser; isAdmin: boolean;
+  postId: number; currentUser: CurrentUser; isAdmin: boolean; initialEditing?: boolean;
   onBack: () => void; onDelete: (id: number) => void; onLikeChange: (id: number, liked: boolean, count: number) => void;
 }) {
   const { t } = useLanguage();
   const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
   const [hearts, setHearts] = useState<HeartParticle[]>([]);
+  const [isEditing, setIsEditing] = useState(initialEditing);
   const HEART_EMOJIS = ["❤️", "🩷", "💕", "💖", "💗", "💓"];
 
   useEffect(() => {
@@ -940,13 +972,63 @@ function DetailView({
             )}
           </div>
 
-          {post.title && (
-            <h2 className="text-lg font-bold mb-3" style={{ color: "#1e293b" }}>{post.title}</h2>
-          )}
+          {isEditing ? (
+            <WriteForm
+              currentUser={currentUser}
+              onCreated={() => {}}
+              onCancel={() => setIsEditing(false)}
+              initialTitle={post.title ?? ""}
+              initialContent={post.content}
+              initialServiceUrl={post.serviceUrl ?? ""}
+              editPostId={post.id}
+              onEditSaved={(updated) => {
+                setPost((p) => p ? { ...p, ...updated } : p);
+                setIsEditing(false);
+              }}
+            />
+          ) : (
+            <>
+              {post.title && (
+                <h2 className="text-lg font-bold mb-3" style={{ color: "#1e293b" }}>{post.title}</h2>
+              )}
 
-          <p className="text-sm leading-relaxed whitespace-pre-wrap mb-5" style={{ color: "#334155" }}>
-            {post.content}
-          </p>
+              {post.serviceUrl && (
+                <a
+                  href={post.serviceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium mb-3 px-3 py-1.5 rounded-xl transition-all duration-150"
+                  style={{ background: "rgba(99,102,241,0.08)", color: "#6366f1", border: "1px solid rgba(99,102,241,0.2)" }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(99,102,241,0.14)"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(99,102,241,0.08)"; }}
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                  {post.serviceUrl}
+                </a>
+              )}
+
+              <p className="text-sm leading-relaxed whitespace-pre-wrap mb-5" style={{ color: "#334155" }}>
+                {post.content}
+              </p>
+
+              {post.isOwner && (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="mb-3 flex items-center gap-1.5 text-xs font-medium rounded-xl px-3 py-1.5 transition-all duration-150"
+                  style={{ background: "rgba(0,0,0,0.04)", color: "#64748b" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(99,102,241,0.08)"; e.currentTarget.style.color = "#6366f1"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(0,0,0,0.04)"; e.currentTarget.style.color = "#64748b"; }}
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                  {t.editPost}
+                </button>
+              )}
+            </>
+          )}
 
           {/* Like */}
           <button
@@ -1003,28 +1085,50 @@ function DetailView({
 
 function WriteForm({
   currentUser, onCreated, onCancel,
+  initialTitle, initialContent, initialServiceUrl, editPostId, onEditSaved,
 }: {
   currentUser: CurrentUser; onCreated: (post: Post) => void; onCancel: () => void;
+  initialTitle?: string; initialContent?: string; initialServiceUrl?: string;
+  editPostId?: number; onEditSaved?: (updated: Partial<Post>) => void;
 }) {
   const { t } = useLanguage();
-  const [boardType, setBoardType] = useState("normal");
   const [visibility, setVisibility] = useState("public");
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
+  const [title, setTitle] = useState(initialTitle ?? "");
+  const [content, setContent] = useState(initialContent ?? "");
+  const [serviceUrl, setServiceUrl] = useState(initialServiceUrl ?? "");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  const requiresTitle = boardType === "inquiry" || boardType === "report";
+  const isEditMode = editPostId !== undefined;
 
   async function submit() {
-    if (!content.trim() || submitting) return;
-    if (requiresTitle && !title.trim()) { setError(t.titleMissing); return; }
+    if (submitting) return;
+    if (!title.trim()) { setError(t.titleMissing); return; }
+    if (!content.trim()) { setError(t.serviceDescMissing); return; }
+    if (!serviceUrl.trim()) { setError(t.serviceUrlMissing); return; }
     setSubmitting(true);
     setError("");
+
+    if (isEditMode) {
+      const res = await fetch(`/api/board/posts/${editPostId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ _action: "edit", title: title.trim(), content: content.trim(), serviceUrl: serviceUrl.trim() }),
+      });
+      if (res.ok) {
+        onEditSaved?.({ title: title.trim(), content: content.trim(), serviceUrl: serviceUrl.trim() });
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setError((data as { error?: string }).error ?? t.submitFailed);
+      }
+      setSubmitting(false);
+      return;
+    }
+
     const res = await fetch("/api/board/posts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: title.trim() || null, content: content.trim(), boardType, visibility }),
+      body: JSON.stringify({ title: title.trim(), content: content.trim(), serviceUrl: serviceUrl.trim(), boardType: "normal", visibility }),
     });
     if (res.ok) {
       const post = await res.json();
@@ -1036,67 +1140,63 @@ function WriteForm({
     setSubmitting(false);
   }
 
-  const typeStyle = (typ: string) => ({
-    padding: "6px 14px",
-    borderRadius: 10,
-    fontSize: 13,
-    fontWeight: 500,
-    cursor: "pointer",
-    background: boardType === typ ? BOARD_TYPE_COLORS[typ]?.bg : "rgba(0,0,0,0.04)",
-    color: boardType === typ ? BOARD_TYPE_COLORS[typ]?.text : "#64748b",
-    border: boardType === typ ? `1px solid ${BOARD_TYPE_COLORS[typ]?.text}30` : "1px solid transparent",
-    transition: "all 0.15s",
-  });
-
   return (
     <div>
       <div className="mb-5">
-        <h2 className="text-lg font-bold" style={{ color: "#1e293b" }}>{t.newPost}</h2>
+        <h2 className="text-lg font-bold" style={{ color: "#1e293b" }}>
+          {isEditMode ? t.editPost : t.newPost}
+        </h2>
         <p className="text-sm mt-1" style={{ color: "#94a3b8" }}>{t.boardSubtitle}</p>
       </div>
 
       <div className="rounded-2xl p-5" style={{ background: "#fff", border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
-        {/* Board type selector */}
-        <div className="mb-4">
-          <p className="text-xs font-medium mb-2" style={{ color: "#64748b" }}>{t.boardType}</p>
-          <div className="flex gap-2">
-            {(["normal", "inquiry", "report"] as const).map((typ) => (
-              <button key={typ} onClick={() => setBoardType(typ)} style={typeStyle(typ)}>
-                {typ === "normal" ? `💬 ${t.normal}` : typ === "inquiry" ? `❓ ${t.inquiry}` : `🚨 ${t.report}`}
-              </button>
-            ))}
-          </div>
-        </div>
 
-        {/* Visibility */}
-        <div className="mb-4">
-          <p className="text-xs font-medium mb-2" style={{ color: "#64748b" }}>{t.visibilityLabel}</p>
-          <div className="flex gap-2">
-            {(["public", "private"] as const).map((v) => (
-              <button
-                key={v}
-                onClick={() => setVisibility(v)}
-                style={{
-                  padding: "6px 14px", borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: "pointer",
-                  background: visibility === v ? "rgba(99,102,241,0.1)" : "rgba(0,0,0,0.04)",
-                  color: visibility === v ? "#6366f1" : "#64748b",
-                  border: visibility === v ? "1px solid rgba(99,102,241,0.3)" : "1px solid transparent",
-                  transition: "all 0.15s",
-                }}
-              >{v === "public" ? t.public : t.private}</button>
-            ))}
+        {/* Visibility (새 글 작성 시만 표시) */}
+        {!isEditMode && (
+          <div className="mb-4">
+            <p className="text-xs font-medium mb-2" style={{ color: "#64748b" }}>{t.visibilityLabel}</p>
+            <div className="flex gap-2">
+              {(["public", "private"] as const).map((v) => (
+                <button
+                  key={v}
+                  onClick={() => setVisibility(v)}
+                  style={{
+                    padding: "6px 14px", borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: "pointer",
+                    background: visibility === v ? "rgba(99,102,241,0.1)" : "rgba(0,0,0,0.04)",
+                    color: visibility === v ? "#6366f1" : "#64748b",
+                    border: visibility === v ? "1px solid rgba(99,102,241,0.3)" : "1px solid transparent",
+                    transition: "all 0.15s",
+                  }}
+                >{v === "public" ? t.public : t.private}</button>
+              ))}
+            </div>
+            {visibility === "private" && (
+              <p className="text-xs mt-1.5" style={{ color: "#94a3b8" }}>{t.privateNotice}</p>
+            )}
           </div>
-          {visibility === "private" && (
-            <p className="text-xs mt-1.5" style={{ color: "#94a3b8" }}>{t.privateNotice}</p>
-          )}
-        </div>
+        )}
 
         {/* Title */}
         <div className="mb-3">
+          <p className="text-xs font-medium mb-1.5" style={{ color: "#64748b" }}>{t.titleRequired}</p>
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder={requiresTitle ? t.titleRequired : t.titleOptional}
+            placeholder={t.titleRequired}
+            className="w-full rounded-xl px-3 py-2.5 text-sm outline-none transition-all duration-200"
+            style={{ background: "#f8fafc", border: "1px solid #e2e8f0", color: "#1e293b" }}
+            onFocus={(e) => (e.target.style.borderColor = "#6366f1")}
+            onBlur={(e) => (e.target.style.borderColor = "#e2e8f0")}
+          />
+        </div>
+
+        {/* Service URL */}
+        <div className="mb-3">
+          <p className="text-xs font-medium mb-1.5" style={{ color: "#64748b" }}>{t.serviceUrlLabel}</p>
+          <input
+            value={serviceUrl}
+            onChange={(e) => setServiceUrl(e.target.value)}
+            placeholder={t.serviceUrlPlaceholder}
             className="w-full rounded-xl px-3 py-2.5 text-sm outline-none transition-all duration-200"
             style={{ background: "#f8fafc", border: "1px solid #e2e8f0", color: "#1e293b" }}
             onFocus={(e) => (e.target.style.borderColor = "#6366f1")}
@@ -1108,15 +1208,12 @@ function WriteForm({
         <div className="flex gap-3">
           <Avatar name={currentUser.name} email={currentUser.email} image={currentUser.image} size={40} />
           <div className="flex-1">
+            <p className="text-xs font-medium mb-1.5" style={{ color: "#64748b" }}>{t.serviceDescLabel}</p>
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && e.ctrlKey) submit(); }}
-              placeholder={
-                boardType === "inquiry" ? t.contentPlaceholderInquiry
-                  : boardType === "report" ? t.contentPlaceholderReport
-                  : t.contentPlaceholderNormal
-              }
+              placeholder={t.contentPlaceholderNormal}
               rows={5}
               className="w-full resize-none rounded-xl px-3 py-2.5 text-sm outline-none transition-all duration-200"
               style={{ background: "#f8fafc", border: "1px solid #e2e8f0", color: "#1e293b" }}
@@ -1144,7 +1241,7 @@ function WriteForm({
                   boxShadow: content.trim() && !submitting ? "0 4px 12px rgba(99,102,241,0.25)" : "none",
                 }}
               >
-                {submitting ? t.submitting : t.submit}
+                {submitting ? t.submitting : isEditMode ? t.saveEdit : t.submit}
               </button>
             </div>
           </div>
@@ -1163,6 +1260,7 @@ export function BoardClient({ currentUser }: { currentUser: CurrentUser }) {
   const [fetchError, setFetchError] = useState("");
   const [view, setView] = useState<"list" | "write" | "detail">("list");
   const [selectedPostId, setSelectedPostId] = useState<number | null>(null);
+  const [startInEditMode, setStartInEditMode] = useState(false);
   const [filterType, setFilterType] = useState<string>("all");
   // display mode: card (기존 카드) | row (목록형)
   const [displayMode, setDisplayMode] = useState<"card" | "row">("card");
@@ -1211,6 +1309,12 @@ export function BoardClient({ currentUser }: { currentUser: CurrentUser }) {
     }
   }
 
+  function handleEdit(postId: number) {
+    setStartInEditMode(true);
+    setSelectedPostId(postId);
+    setView("detail");
+  }
+
   const filteredPosts = filterType === "all" ? posts : posts.filter((p) => p.boardType === filterType);
 
   if (view === "write") {
@@ -1238,7 +1342,8 @@ export function BoardClient({ currentUser }: { currentUser: CurrentUser }) {
           postId={selectedPostId}
           currentUser={currentUser}
           isAdmin={isAdmin}
-          onBack={() => { setView("list"); setSelectedPostId(null); }}
+          initialEditing={startInEditMode}
+          onBack={() => { setView("list"); setSelectedPostId(null); setStartInEditMode(false); }}
           onDelete={handleDelete}
           onLikeChange={(id, liked, count) => setPosts((prev) => prev.map((p) => p.id === id ? { ...p, isLiked: liked, likeCount: count } : p))}
         />
@@ -1338,26 +1443,14 @@ export function BoardClient({ currentUser }: { currentUser: CurrentUser }) {
             </div>
           ))}
         </div>
-        <button
-          onClick={() => setView("write")}
-          className="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all duration-200"
-          style={{ background: "linear-gradient(135deg, #6366f1 0%, #3b82f6 100%)", color: "#fff", boxShadow: "0 4px 12px rgba(99,102,241,0.25)" }}
-          onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.9")}
-          onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-          </svg>
-          {t.contactUs}
-        </button>
       </div>
 
       {/* Filter tabs + view toggle */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex gap-2 flex-wrap">
-          {(["all", "normal", "inquiry", "report"] as const).map((ft) => {
+          {(["all", "normal"] as const).map((ft) => {
             const active = filterType === ft;
-            const label = ft === "all" ? t.all : ft === "normal" ? `💬 ${t.normal}` : ft === "inquiry" ? `❓ ${t.inquiry}` : `🚨 ${t.report}`;
+            const label = ft === "all" ? t.all : `💬 ${t.normal}`;
             const color = ft === "all" ? { bg: "rgba(99,102,241,0.1)", text: "#6366f1" } : BOARD_TYPE_COLORS[ft];
             return (
               <button
@@ -1439,6 +1532,7 @@ export function BoardClient({ currentUser }: { currentUser: CurrentUser }) {
                 onSelect={handleSelectPost}
                 onDelete={handleDelete}
                 onLike={handleLike}
+                onEdit={handleEdit}
               />
             ))}
           </div>
@@ -1472,6 +1566,7 @@ export function BoardClient({ currentUser }: { currentUser: CurrentUser }) {
                 onSelect={handleSelectPost}
                 onDelete={handleDelete}
                 onLike={handleLike}
+                onEdit={handleEdit}
               />
             ))}
           </div>

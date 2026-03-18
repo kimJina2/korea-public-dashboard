@@ -41,6 +41,7 @@ export const posts = sqliteTable("posts", {
   authorImage: text("author_image"),
   title: text("title"),
   content: text("content").notNull(),
+  serviceUrl: text("service_url"),
   boardType: text("board_type").notNull().default("normal"), // normal | inquiry | report
   visibility: text("visibility").notNull().default("public"), // public | private | admin_only
   answerStatus: text("answer_status").notNull().default("none"), // none | pending | answered

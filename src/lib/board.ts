@@ -15,6 +15,7 @@ export type PostWithMeta = {
   authorImage: string | null;
   title: string | null;
   content: string;
+  serviceUrl: string | null;
   boardType: string;
   visibility: string;
   answerStatus: string;
@@ -301,6 +302,7 @@ export async function createPost(data: {
   authorImage?: string | null;
   title?: string | null;
   content: string;
+  serviceUrl?: string | null;
   boardType?: string;
   visibility?: string;
 }) {
@@ -312,12 +314,28 @@ export async function createPost(data: {
       authorImage: data.authorImage ?? null,
       title: data.title ?? null,
       content: data.content,
+      serviceUrl: data.serviceUrl ?? null,
       boardType: data.boardType ?? "normal",
       visibility: data.visibility ?? "public",
       answerStatus: data.boardType === "normal" ? "none" : "pending",
     })
     .returning();
   return inserted;
+}
+
+export async function updatePostContent(
+  postId: number,
+  authorEmail: string,
+  data: { title?: string | null; content?: string; serviceUrl?: string | null }
+) {
+  const [post] = await db.select().from(posts).where(eq(posts.id, postId)).limit(1);
+  if (!post) throw new Error("Post not found");
+  if (post.authorEmail !== authorEmail) throw new Error("Forbidden");
+
+  await db
+    .update(posts)
+    .set({ ...data, updatedAt: new Date().toISOString() })
+    .where(eq(posts.id, postId));
 }
 
 export async function updatePostStatus(

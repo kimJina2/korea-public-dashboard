@@ -488,8 +488,31 @@ function LandingPageInner() {
         </div>
 
         {/* 실시간 공공데이터 탭 */}
-        <div className="mb-8">
+        <div className="mb-8 relative">
           <PublicDataTabs />
+          {/* 로그인 필요 블러 오버레이 */}
+          <div
+            className="absolute inset-0 rounded-2xl flex flex-col items-center justify-center gap-4"
+            style={{
+              backdropFilter: "blur(10px)",
+              WebkitBackdropFilter: "blur(10px)",
+              background: "rgba(248,250,252,0.75)",
+              zIndex: 10,
+            }}
+          >
+            <div
+              className="flex h-12 w-12 items-center justify-center rounded-2xl"
+              style={{ background: "linear-gradient(135deg, #6366f1 0%, #3b82f6 100%)", boxShadow: "0 8px 24px rgba(99,102,241,0.3)" }}
+            >
+              <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <div className="text-center px-4">
+              <p className="text-sm font-bold mb-1" style={{ color: "#1e293b" }}>로그인하면 실시간 데이터를 볼 수 있어요</p>
+              <p className="text-xs" style={{ color: "#64748b" }}>대기질 · 날씨 · 대중교통 공공데이터</p>
+            </div>
+          </div>
         </div>
 
         {/* 추가 서비스 안내 (게시판, 나만의영상) */}

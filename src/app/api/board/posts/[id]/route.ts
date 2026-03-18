@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { posts, postLikes, comments, boardReplies } from "@/lib/schema";
 import { eq } from "drizzle-orm";
-import { isAdminEmail, updatePostStatus } from "@/lib/board";
+import { isAdminEmail, updatePostStatus, updatePostContent } from "@/lib/board";
 
 export async function DELETE(
   _req: Request,
@@ -42,8 +42,8 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
-  if (!session?.user?.email || !isAdminEmail(session.user.email)) {
-    return NextResponse.json({ error: "관리자 권한이 필요합니다." }, { status: 403 });
+  if (!session?.user?.email) {
+    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
   }
 
   const { id } = await params;
@@ -53,6 +53,43 @@ export async function PATCH(
   const postId = parseInt(id, 10);
 
   const body = await req.json();
+
+  // 작성자 본인: 제목/내용/URL 수정
+  if (body._action === "edit") {
+    const { title, content, serviceUrl } = body;
+
+    if (!title?.trim()) {
+      return NextResponse.json({ error: "제목을 입력해주세요." }, { status: 400 });
+    }
+    if (!content?.trim()) {
+      return NextResponse.json({ error: "서비스 소개를 입력해주세요." }, { status: 400 });
+    }
+    if (!serviceUrl?.trim()) {
+      return NextResponse.json({ error: "서비스 URL을 입력해주세요." }, { status: 400 });
+    }
+    try { new URL(serviceUrl.trim()); } catch {
+      return NextResponse.json({ error: "올바른 URL 형식을 입력해주세요." }, { status: 400 });
+    }
+
+    try {
+      await updatePostContent(postId, session.user.email, {
+        title: title.trim(),
+        content: content.trim(),
+        serviceUrl: serviceUrl.trim(),
+      });
+      return NextResponse.json({ success: true });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg === "Forbidden") return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
+      if (msg === "Post not found") return NextResponse.json({ error: "게시글을 찾을 수 없습니다." }, { status: 404 });
+      return NextResponse.json({ error: "수정에 실패했습니다." }, { status: 500 });
+    }
+  }
+
+  // 관리자: 상태 변경
+  if (!isAdminEmail(session.user.email)) {
+    return NextResponse.json({ error: "관리자 권한이 필요합니다." }, { status: 403 });
+  }
 
   const VALID_VALUES = {
     processStatus: ["received", "in_review", "resolved", "closed"],
