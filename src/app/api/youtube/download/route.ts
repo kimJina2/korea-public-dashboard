@@ -11,18 +11,14 @@ const YTDLP_BIN = path.join(os.tmpdir(), process.platform === "win32" ? "yt-dlp.
 const BROWSER_UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36";
 
-// Cache across warm Lambda/Edge invocations
-let ytDlpReady = false;
-
 async function ensureYtDlp(): Promise<YTDlpWrap> {
-  if (!ytDlpReady || !fs.existsSync(YTDLP_BIN)) {
+  if (!fs.existsSync(YTDLP_BIN)) {
     console.log("[ytdl] downloading yt-dlp binary...");
     await YTDlpWrap.downloadFromGithub(YTDLP_BIN);
     if (process.platform !== "win32") {
       fs.chmodSync(YTDLP_BIN, 0o755);
     }
-    ytDlpReady = true;
-    console.log("[ytdl] yt-dlp ready");
+    console.log("[ytdl] yt-dlp binary downloaded");
   }
   return new YTDlpWrap(YTDLP_BIN);
 }
@@ -71,28 +67,18 @@ export async function POST(request: Request) {
       ...(cookieFile ? ["--cookies", cookieFile] : []),
     ];
 
-    // Step 1: get title (lightweight metadata fetch, no download)
+    // Step 1: get title + download in a single yt-dlp call
+    // --print runs after extraction so we get the title alongside the download
     let title = "영상";
-    try {
-      const titleOut = await ytdlp.execPromise([
-        ...baseArgs,
-        "--skip-download",
-        "--print", "%(title)s",
-      ]);
-      title = titleOut.trim() || "영상";
-      console.log("[ytdl] title:", title);
-    } catch (e) {
-      console.warn("[ytdl] title fetch skipped:", e instanceof Error ? e.message : String(e));
-    }
-
-    // Step 2: download — format 18 is a pre-muxed 360p MP4 (no ffmpeg needed)
-    // Falls back to best available MP4 if format 18 is unavailable
     console.log("[ytdl] starting download...");
-    await ytdlp.execPromise([
+    const stdout = await ytdlp.execPromise([
       ...baseArgs,
       "-f", "18/best[ext=mp4]/best",
       "-o", outputPath,
+      "--print", "%(title)s",
     ]);
+    title = stdout.trim() || "영상";
+    console.log("[ytdl] title:", title);
 
     if (!fs.existsSync(outputPath) || fs.statSync(outputPath).size === 0) {
       return Response.json({ error: "다운로드 파일을 찾을 수 없습니다" }, { status: 500 });
