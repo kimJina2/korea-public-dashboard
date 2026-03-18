@@ -44,27 +44,18 @@ export async function POST(request: Request) {
   const id = randomUUID();
   const videosDir = getVideosDir();
   const outputPath = path.join(videosDir, `${id}.mp4`);
-  const rawCookies = process.env.YOUTUBE_COOKIES ?? "";
-  let cookieFile: string | undefined;
 
   try {
     const ytdlp = await ensureYtDlp();
 
-    // Write Netscape cookies.txt to temp file (env var uses literal \n\t)
-    if (rawCookies.trim()) {
-      cookieFile = path.join(os.tmpdir(), `yt_cookies_${id}.txt`);
-      const normalized = rawCookies.replace(/\\n/g, "\n").replace(/\\t/g, "\t");
-      fs.writeFileSync(cookieFile, normalized);
-    }
-
-    // Common args: mobile clients bypass CDN bot detection
+    // NOTE: cookies are intentionally NOT passed — with cookies, YouTube requires
+    // n-challenge signature solving + GVS PO Token, causing all formats to be skipped.
+    // Mobile clients (mweb/android/ios) work fine without cookies for public videos.
     const baseArgs = [
       url,
       "--extractor-args", "youtube:player_client=mweb,android,ios",
       "--user-agent", BROWSER_UA,
       "--no-playlist",
-      "--no-warnings",
-      ...(cookieFile ? ["--cookies", cookieFile] : []),
     ];
 
     // Step 1: get title + download in a single yt-dlp call
@@ -93,8 +84,15 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? error.stack : "";
     console.error("youtube download error:", msg);
+    console.error("youtube download stack:", stack?.split("\n")[1] ?? "");
     if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
+
+    // In development, return the raw error so we can diagnose
+    if (process.env.NODE_ENV === "development") {
+      return Response.json({ error: msg }, { status: 500 });
+    }
 
     let userMsg = "다운로드에 실패했습니다. 잠시 후 다시 시도해주세요.";
     if (
@@ -117,9 +115,5 @@ export async function POST(request: Request) {
     }
 
     return Response.json({ error: userMsg }, { status: 500 });
-  } finally {
-    if (cookieFile && fs.existsSync(cookieFile)) {
-      fs.unlinkSync(cookieFile);
-    }
   }
 }
