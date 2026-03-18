@@ -8,8 +8,6 @@ import { auth } from "@/auth";
 export const maxDuration = 300;
 
 const YTDLP_BIN = path.join(os.tmpdir(), process.platform === "win32" ? "yt-dlp.exe" : "yt-dlp");
-const BROWSER_UA =
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36";
 
 async function ensureYtDlp(): Promise<YTDlpWrap> {
   if (!fs.existsSync(YTDLP_BIN)) {
@@ -48,13 +46,11 @@ export async function POST(request: Request) {
   try {
     const ytdlp = await ensureYtDlp();
 
-    // NOTE: cookies are intentionally NOT passed — with cookies, YouTube requires
-    // n-challenge signature solving + GVS PO Token, causing all formats to be skipped.
-    // Mobile clients (mweb/android/ios) work fine without cookies for public videos.
+    // NOTE: do NOT specify player_client — mweb/android/ios all require GVS PO Token
+    // which causes "Requested format is not available". Let yt-dlp auto-select
+    // (defaults to android_vr which works without a PO Token).
     const baseArgs = [
       url,
-      "--extractor-args", "youtube:player_client=mweb,android,ios",
-      "--user-agent", BROWSER_UA,
       "--no-playlist",
     ];
 
@@ -64,6 +60,7 @@ export async function POST(request: Request) {
     console.log("[ytdl] starting download...");
     const stdout = await ytdlp.execPromise([
       ...baseArgs,
+      "--no-simulate",
       "-f", "18/best[ext=mp4]/best",
       "-o", outputPath,
       "--print", "%(title)s",
