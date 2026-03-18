@@ -49,3 +49,5 @@ next-env.d.ts
 tmp_videos/
 .ytdlp/
 tmp_videos/
+
+.env*.local

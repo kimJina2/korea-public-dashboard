@@ -9,11 +9,24 @@ export const maxDuration = 300;
 
 const YTDLP_BIN = path.join(os.tmpdir(), process.platform === "win32" ? "yt-dlp.exe" : "yt-dlp");
 
+// yt-dlp GitHub releases: "yt-dlp" is a Python script on Linux; "yt-dlp_linux" is the standalone binary.
+// YTDlpWrap.downloadFromGithub downloads the Python script which requires python3 (not available on Vercel).
+// We download the correct standalone binary directly.
+const YTDLP_LINUX_URL = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux";
+
 async function ensureYtDlp(): Promise<YTDlpWrap> {
   if (!fs.existsSync(YTDLP_BIN)) {
     console.log("[ytdl] downloading yt-dlp binary...");
-    await YTDlpWrap.downloadFromGithub(YTDLP_BIN);
-    if (process.platform !== "win32") {
+    if (process.platform === "linux") {
+      const res = await fetch(YTDLP_LINUX_URL);
+      if (!res.ok) throw new Error(`Failed to download yt-dlp_linux: HTTP ${res.status}`);
+      const buf = await res.arrayBuffer();
+      fs.writeFileSync(YTDLP_BIN, Buffer.from(buf));
+      fs.chmodSync(YTDLP_BIN, 0o755);
+    } else if (process.platform === "win32") {
+      await YTDlpWrap.downloadFromGithub(YTDLP_BIN);
+    } else {
+      await YTDlpWrap.downloadFromGithub(YTDLP_BIN);
       fs.chmodSync(YTDLP_BIN, 0o755);
     }
     console.log("[ytdl] yt-dlp binary downloaded");
@@ -46,13 +59,25 @@ export async function POST(request: Request) {
   try {
     const ytdlp = await ensureYtDlp();
 
+    // Write cookies to /tmp if YT_COOKIES_B64 env var is set
+    const cookiesPath = path.join(os.tmpdir(), "yt-cookies.txt");
+    if (process.env.YT_COOKIES_B64) {
+      const decoded = Buffer.from(process.env.YT_COOKIES_B64, "base64").toString("utf8");
+      fs.writeFileSync(cookiesPath, decoded);
+    }
+
     // NOTE: do NOT specify player_client — mweb/android/ios all require GVS PO Token
     // which causes "Requested format is not available". Let yt-dlp auto-select
     // (defaults to android_vr which works without a PO Token).
-    const baseArgs = [
+    const baseArgs: string[] = [
       url,
       "--no-playlist",
     ];
+    if (process.env.YT_COOKIES_B64 && fs.existsSync(cookiesPath)) {
+      baseArgs.push("--cookies", cookiesPath);
+    }
+    // Pass current Node.js binary path so yt-dlp can solve YouTube's n-challenge
+    baseArgs.push("--js-runtimes", `node:${process.execPath}`);
 
     // Step 1: get title + download in a single yt-dlp call
     // --print runs after extraction so we get the title alongside the download
@@ -86,31 +111,6 @@ export async function POST(request: Request) {
     console.error("youtube download stack:", stack?.split("\n")[1] ?? "");
     if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
 
-    // In development, return the raw error so we can diagnose
-    if (process.env.NODE_ENV === "development") {
-      return Response.json({ error: msg }, { status: 500 });
-    }
-
-    let userMsg = "다운로드에 실패했습니다. 잠시 후 다시 시도해주세요.";
-    if (
-      msg.includes("Sign in") ||
-      msg.includes("LOGIN_REQUIRED") ||
-      msg.toLowerCase().includes("login required") ||
-      msg.includes("not a bot")
-    ) {
-      userMsg = "YouTube가 서버 접근을 차단했습니다. 잠시 후 다시 시도하거나 다른 영상을 이용해주세요.";
-    } else if (msg.includes("Private") || msg.includes("private")) {
-      userMsg = "비공개 영상은 다운로드할 수 없습니다.";
-    } else if (msg.includes("unavailable") || msg.includes("Video unavailable")) {
-      userMsg = "해당 영상을 찾을 수 없거나 재생이 불가능합니다.";
-    } else if (msg.includes("age") && msg.includes("restrict")) {
-      userMsg = "연령 제한 영상은 다운로드할 수 없습니다.";
-    } else if (msg.includes("copyright") || msg.includes("removed")) {
-      userMsg = "저작권 문제로 다운로드할 수 없는 영상입니다.";
-    } else if (msg.includes("403") || msg.includes("non 2xx")) {
-      userMsg = "YouTube CDN이 다운로드를 차단했습니다. 잠시 후 다시 시도해주세요.";
-    }
-
-    return Response.json({ error: userMsg }, { status: 500 });
+    return Response.json({ error: msg, stack: stack?.split("\n")[1] ?? "" }, { status: 500 });
   }
 }
