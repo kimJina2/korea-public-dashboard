@@ -14,13 +14,13 @@ let processor: any = null;
 let model: any = null;
 
 const LANG_SYSTEM: Record<string, string> = {
-  ko: "You must respond only in Korean (한국어). Never use English or any other language.",
-  en: "You must respond only in English.",
-  ja: "You must respond only in Japanese (日本語). Never use English.",
-  es: "You must respond only in Spanish (Español). Never use English.",
-  fr: "You must respond only in French (Français). Never use English.",
-  zh: "You must respond only in Chinese (中文). Never use English.",
-  vi: "You must respond only in Vietnamese (Tiếng Việt). Never use English.",
+  ko: "반드시 한국어로만 답변하세요. 영어를 절대 사용하지 마세요.",
+  en: "Respond only in English. Do not use any other language.",
+  ja: "必ず日本語だけで答えてください。英語を使わないでください。",
+  es: "Responde únicamente en español. No uses ningún otro idioma.",
+  fr: "Répondez uniquement en français. N'utilisez aucune autre langue.",
+  zh: "只能用中文回答。不要使用其他语言。",
+  vi: "Chỉ trả lời bằng tiếng Việt. Không sử dụng ngôn ngữ khác.",
 };
 
 ctx.addEventListener("message", async (event: MessageEvent) => {
@@ -88,7 +88,7 @@ ctx.addEventListener("message", async (event: MessageEvent) => {
       const image = await RawImage.fromURL(imageDataUrl);
 
       const systemMsg = LANG_SYSTEM[lang ?? "ko"] ?? LANG_SYSTEM.ko;
-      const userText = `${systemMsg}\n\n${prompt || "Describe this image in detail."}`;
+      const userText = `${systemMsg}\n\n${prompt || "Describe this image in detail."}\n\n${systemMsg}`;
       const messages = [
         {
           role: "user",

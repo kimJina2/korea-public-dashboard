@@ -1,103 +1,113 @@
-# On-Device AI 영상 분석
+# 영상 분석 & YouTube 다운로드
 
 ## 개요
 
-"나만의 영상" 페이지(`/dashboard/videos`)는 YouTube 영상을 다운로드하고, 브라우저에서 직접 실행되는 AI 모델로 특정 프레임을 분석하는 기능을 제공합니다. 서버에 이미지를 전송하지 않고 **모든 추론이 사용자 브라우저 내에서** 실행됩니다.
+"나만의 영상" 페이지(`/dashboard/videos`)는 YouTube 영상을 다운로드하고, AI API로 특정 프레임을 분석하는 기능을 제공합니다.
 
-## 사용 모델
-
-| 항목 | 내용 |
-|------|------|
-| 모델 | `HuggingFaceTB/SmolVLM-256M-Instruct` |
-| 모델 크기 | 약 256MB (최초 1회 다운로드, 브라우저 캐시) |
-| 모델 타입 | Vision Language Model (VLM) |
-| 라이브러리 | `@huggingface/transformers` v3.x |
-| 추론 백엔드 | WebGPU (지원 시) / ONNX WASM 폴백 |
-| dtype | fp16 |
-
-## 시스템 요구사항
-
-| 항목 | 요구사항 |
-|------|---------|
-| 브라우저 | Chrome 113+, Edge 113+ (WebGPU 지원) |
-| GPU | WebGPU 지원 GPU (Intel/AMD/NVIDIA) |
-| RAM | 최소 4GB 권장 |
-| 최초 로드 | 약 256MB 다운로드 필요 (이후 캐시) |
-
-> WebGPU 미지원 환경에서는 ONNX WASM으로 자동 폴백되어 속도가 느려집니다.
+---
 
 ## 아키텍처
 
 ```
 videos/page.tsx (메인 UI)
     │
-    ├── Web Worker (ai-worker.ts)
-    │       │
-    │       ├── load 메시지 → AutoProcessor + AutoModelForVision2Seq 로드
-    │       └── analyze 메시지 → 이미지 분석 → TextStreamer 토큰 스트리밍
+    ├── POST /api/youtube/download
+    │       └── yt-dlp_linux 바이너리로 영상 다운로드
+    │           → 영상 바이너리 직접 반환 (video/mp4)
+    │           → 클라이언트에서 URL.createObjectURL(blob)
     │
-    ├── <video> 태그 → /api/youtube/video/{id}.mp4 Range 스트리밍
+    ├── <video> 태그 → Blob URL 로컬 재생
     │
-    └── Hidden <canvas> → video.currentTime 프레임 캡처 → base64 JPEG
+    ├── Hidden <canvas> → video.currentTime 프레임 캡처 → base64 JPEG
+    │
+    └── POST /api/youtube/analyze
+            └── Groq API (Llama 4 Scout) → 한국어 분석 결과 반환
 ```
 
-## Web Worker 메시지 프로토콜
-
-### 메인 → Worker
-
-| type | 추가 필드 | 설명 |
-|------|---------|------|
-| `load` | - | 모델 로드 시작 |
-| `analyze` | `imageDataUrl`, `prompt?`, `maxTokens?` | 이미지 분석 요청 |
-
-### Worker → 메인
-
-| type | 추가 필드 | 설명 |
-|------|---------|------|
-| `status` | `message` | 로드 상태 텍스트 업데이트 |
-| `progress` | `progress` | 다운로드 진행률 (0~100) |
-| `ready` | - | 모델 로드 완료 |
-| `token` | `token` | 스트리밍 토큰 (실시간) |
-| `done` | - | 분석 완료 |
-| `error` | `message` | 오류 발생 |
-
-## 프레임 캡처 방식
-
-```typescript
-// 영상 일시정지 후 캡처
-const canvas = document.createElement("canvas");
-canvas.width = video.videoWidth;
-canvas.height = video.videoHeight;
-canvas.getContext("2d")?.drawImage(video, 0, 0);
-const imageDataUrl = canvas.toDataURL("image/jpeg", 0.8);
-```
-
-캡처된 프레임은 base64 JPEG로 인코딩되어 Web Worker에 전달됩니다.
+---
 
 ## YouTube 다운로드
 
 | 항목 | 내용 |
 |------|------|
 | 패키지 | `yt-dlp-wrap` |
-| 바이너리 | `.ytdlp/yt-dlp.exe` (최초 실행 시 GitHub에서 자동 다운로드) |
-| 다운로드 포맷 | `best[ext=mp4]` (ffmpeg 없이 단일 스트림) |
-| 저장 위치 | `tmp_videos/{uuid}.mp4` |
-| 스트리밍 | HTTP Range 요청 지원 (`/api/youtube/video/[filename]`) |
+| 바이너리 | Linux: `yt-dlp_linux` (GitHub에서 직접 다운로드), Windows: `YTDlpWrap.downloadFromGithub()` |
+| 다운로드 포맷 | `18/best[ext=mp4]/best` (ffmpeg 없이 단일 스트림) |
+| 저장 위치 | `/tmp/yt_videos/{uuid}.mp4` (임시) |
+| 영상 전달 | 바이너리를 직접 응답으로 반환 → Blob URL |
+| 인증 | `YT_COOKIES_B64` 환경변수 (base64 인코딩된 Netscape 쿠키) |
+| JS 런타임 | `--js-runtimes node:${process.execPath}` (YouTube n-challenge 해결) |
+
+### 환경변수
+
+| 변수 | 설명 |
+|------|------|
+| `YT_COOKIES_B64` | YouTube 쿠키 파일을 base64로 인코딩한 값. Vercel 서버 IP 봇 차단 우회에 필요 |
+| `GROQ_API_KEY` | 화면 분석 API 키 (console.groq.com에서 무료 발급) |
+
+### 쿠키 설정 방법
+
+```powershell
+# Chrome 확장: "Get cookies.txt LOCALLY" 설치 후 youtube.com 쿠키 내보내기
+[Convert]::ToBase64String([System.IO.File]::ReadAllBytes("C:\path\youtube_cookies.txt")) | clip
+# 클립보드 내용을 Vercel > Settings > Environment Variables > YT_COOKIES_B64 에 붙여넣기
+```
+
+### Vercel 배포 시 구조
+
+Vercel 서버리스 함수는 요청마다 별도 인스턴스를 사용하므로 `/tmp` 파일을 다른 요청에서 접근할 수 없습니다.
+→ 다운로드 API가 영상 파일을 읽어 **바이너리 응답으로 직접 반환**, 클라이언트에서 `URL.createObjectURL(blob)`으로 재생합니다.
 
 ### ffmpeg 없이 다운로드하는 이유
-`bestvideo+bestaudio` 병합 포맷은 ffmpeg가 필요합니다. 별도 설치 없이 동작하도록 `best[ext=mp4]` 단일 스트림 포맷을 사용합니다. 화질은 최대 720p 수준입니다.
 
-### Vercel 배포 시 주의
-Vercel 서버리스 환경에서는 파일시스템 쓰기 및 바이너리 실행이 제한됩니다. YouTube 다운로드 기능은 **로컬 개발 환경 전용**입니다.
+`bestvideo+bestaudio` 병합 포맷은 ffmpeg가 필요합니다. 별도 설치 없이 동작하도록 `best[ext=mp4]` 단일 스트림 포맷 사용. 화질은 최대 720p 수준입니다.
 
-## 기술적 제약 및 해결
+---
 
-### TypeScript lib 충돌
-Web Worker에서 `/// <reference lib="webworker" />` 사용 시 tsconfig의 `lib: ["dom"]`과 충돌합니다.
-→ reference 지시어 제거 후 `const ctx = self as any`로 타입 우회
+## 화면 분석 AI
 
-### WebGPU 성능 경고
-`powerPreference ignored on Windows`, `Some nodes not assigned to preferred EP` 등의 콘솔 경고는 정상입니다. 추론 자체는 동작합니다.
+| 항목 | 내용 |
+|------|------|
+| API | Groq API |
+| 모델 | `meta-llama/llama-4-scout-17b-16e-instruct` |
+| 요금 | 무료 (console.groq.com 가입 후 API 키 발급) |
+| 언어 | 앱 언어 설정에 따라 자동 적용 (ko/en/ja/es/fr/zh/vi) |
+| 엔드포인트 | `POST /api/youtube/analyze` |
 
-### 브라우저 캐시 용량 초과
-`Unable to add response to browser cache: UnknownError` 경고는 256MB 모델이 브라우저 캐시 한도를 초과할 때 발생합니다. 모델은 메모리에서 정상 동작합니다.
+### 요청/응답
+
+```typescript
+// 요청
+{ imageDataUrl: string, prompt: string, lang: string, maxTokens: number }
+
+// 응답
+{ result: string }
+```
+
+---
+
+## 트러블슈팅 히스토리
+
+### yt-dlp 바이너리 문제 (Vercel)
+- **증상**: `env: 'python3': No such file or directory`
+- **원인**: `YTDlpWrap.downloadFromGithub()`이 Python 스크립트 버전(`yt-dlp`) 다운로드
+- **해결**: Linux에서 `yt-dlp_linux` (독립 실행 바이너리)를 직접 fetch로 다운로드
+
+### YouTube 봇 차단
+- **증상**: `Sign in to confirm you're not a bot`
+- **원인**: Vercel 서버 IP를 YouTube가 봇으로 차단
+- **해결**: 로그인된 YouTube 쿠키를 `YT_COOKIES_B64` 환경변수로 주입
+
+### n-challenge 실패
+- **증상**: `n challenge solving failed: Some formats may be missing`
+- **원인**: YouTube n-challenge 해결에 JS 런타임 필요
+- **해결**: `--js-runtimes node:${process.execPath}` 추가
+
+### 영상 재생 404
+- **증상**: `/api/youtube/video/{id}.mp4` 404 Not Found
+- **원인**: Vercel 서버리스 인스턴스 간 `/tmp` 파일 공유 불가
+- **해결**: 다운로드 API에서 영상 바이너리를 직접 반환, 클라이언트에서 Blob URL 생성
+
+### 분석 결과 영어 출력
+- **원인**: SmolVLM-256M (브라우저 온디바이스 모델)이 너무 소형 → 언어 지시 무시
+- **해결**: 서버사이드 Groq API로 전환

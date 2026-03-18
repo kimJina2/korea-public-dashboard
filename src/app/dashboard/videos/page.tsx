@@ -1,20 +1,11 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useLanguage } from "@/contexts/language-context";
-
-type ModelStatus = "idle" | "loading" | "ready" | "error";
 
 interface VideoInfo {
   title: string;
   videoUrl: string;
-}
-
-interface WorkerMessage {
-  type: "status" | "progress" | "ready" | "token" | "done" | "error";
-  message?: string;
-  token?: string;
-  progress?: number;
 }
 
 export default function VideosPage() {
@@ -23,110 +14,30 @@ export default function VideosPage() {
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [videoInfo, setVideoInfo] = useState<VideoInfo | null>(null);
-  const [modelStatus, setModelStatus] = useState<ModelStatus>("idle");
-  const [modelProgress, setModelProgress] = useState(0);
-  const [modelMessage, setModelMessage] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
+  const [analyzeError, setAnalyzeError] = useState<string | null>(null);
   const [result, setResult] = useState("");
-  const [tokenCount, setTokenCount] = useState(0);
   const [capturedFrame, setCapturedFrame] = useState<string | null>(null);
   const [prompt, setPrompt] = useState<string>(() => t.defaultPrompt);
   const [maxTokens, setMaxTokens] = useState(512);
-  const [webgpuSupported, setWebgpuSupported] = useState(true);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const workerRef = useRef<Worker | null>(null);
-  const resultRef = useRef("");
-
-  useEffect(() => {
-    if (typeof navigator !== "undefined" && !("gpu" in navigator)) {
-      setWebgpuSupported(false);
-    }
-    return () => {
-      workerRef.current?.terminate();
-    };
-  }, []);
 
   // 언어 변경 시 기본 프롬프트 동기화
   useEffect(() => {
     setPrompt(t.defaultPrompt);
-  }, [lang]); // eslint-disable-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang]);
 
-  const loadModel = useCallback(() => {
-    if (workerRef.current) {
-      workerRef.current.terminate();
-    }
-
-    const worker = new Worker(new URL("./ai-worker.ts", import.meta.url));
-    workerRef.current = worker;
-
-    worker.addEventListener("message", (e: MessageEvent<WorkerMessage>) => {
-      const { type, message, token, progress } = e.data;
-      switch (type) {
-        case "status":
-          setModelStatus("loading");
-          setModelMessage(message ?? "");
-          break;
-        case "progress":
-          if (progress !== undefined) setModelProgress(Math.round(progress * 100));
-          break;
-        case "ready":
-          setModelStatus("ready");
-          setModelMessage("");
-          setModelProgress(100);
-          break;
-        case "token":
-          if (token) {
-            resultRef.current += token;
-            setResult(resultRef.current);
-            setTokenCount((c) => c + 1);
-          }
-          break;
-        case "done":
-          setAnalyzing(false);
-          break;
-        case "error":
-          setModelStatus((prev) => (prev === "loading" ? "error" : prev));
-          setAnalyzing(false);
-          setModelMessage(message ?? "오류 발생");
-          console.error("Worker error:", message);
-          break;
+  // Revoke blob URL when videoInfo changes (memory cleanup)
+  useEffect(() => {
+    return () => {
+      if (videoInfo?.videoUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(videoInfo.videoUrl);
       }
-    });
-
-    setModelStatus("loading");
-    setModelProgress(0);
-    worker.postMessage({ type: "load" });
-  }, []);
-
-  const captureAndAnalyze = useCallback(() => {
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const worker = workerRef.current;
-    if (!video || !canvas || !worker || modelStatus !== "ready") return;
-
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 360;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    try {
-      ctx.drawImage(video, 0, 0);
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
-      setCapturedFrame(dataUrl);
-
-      setAnalyzing(true);
-      resultRef.current = "";
-      setResult("");
-      setTokenCount(0);
-
-      worker.postMessage({ type: "analyze", imageDataUrl: dataUrl, prompt, maxTokens, lang });
-    } catch (e) {
-      console.error("captureAndAnalyze error:", e);
-      setAnalyzing(false);
-    }
-  }, [modelStatus, prompt, maxTokens, lang]);
+    };
+  }, [videoInfo]);
 
   const handleDownload = async () => {
     if (!ytUrl.trim()) return;
@@ -140,16 +51,55 @@ export default function VideosPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: ytUrl.trim() }),
       });
-      const data = await res.json();
       if (!res.ok) {
+        const data = await res.json();
         setDownloadError(data.error ?? "다운로드 실패");
       } else {
-        setVideoInfo({ title: data.title, videoUrl: data.videoUrl });
+        const blob = await res.blob();
+        const videoUrl = URL.createObjectURL(blob);
+        const title = decodeURIComponent(res.headers.get("X-Video-Title") ?? "영상");
+        setVideoInfo({ title, videoUrl });
       }
     } catch {
       setDownloadError("네트워크 오류");
     } finally {
       setDownloading(false);
+    }
+  };
+
+  const captureAndAnalyze = async () => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas) return;
+
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 360;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.drawImage(video, 0, 0);
+    const imageDataUrl = canvas.toDataURL("image/jpeg", 0.9);
+    setCapturedFrame(imageDataUrl);
+    setAnalyzing(true);
+    setAnalyzeError(null);
+    setResult("");
+
+    try {
+      const res = await fetch("/api/youtube/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageDataUrl, prompt, maxTokens, lang }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setAnalyzeError(data.error ?? "분석 실패");
+      } else {
+        setResult(data.result ?? "");
+      }
+    } catch {
+      setAnalyzeError("네트워크 오류");
+    } finally {
+      setAnalyzing(false);
     }
   };
 
@@ -163,84 +113,6 @@ export default function VideosPage() {
         <p className="mt-1 text-sm" style={{ color: "#64748b" }}>
           {t.videosSubtitle}
         </p>
-      </div>
-
-      {/* WebGPU Warning — 경고만 표시, 기능은 CPU 모드로 사용 가능 */}
-      {!webgpuSupported && (
-        <div
-          className="mb-4 rounded-xl px-4 py-3 text-sm"
-          style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)", color: "#b45309" }}
-        >
-          ⚠️ WebGPU 미지원 환경입니다. CPU 모드로 동작하며 속도가 느릴 수 있습니다.
-        </div>
-      )}
-
-      {/* Model Status Bar */}
-      <div
-        className="mb-4 rounded-2xl overflow-hidden"
-        style={{
-          background: "#ffffff",
-          border: "1px solid rgba(0,0,0,0.07)",
-          boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
-        }}
-      >
-        {modelStatus === "loading" && (
-          <div className="h-1 relative overflow-hidden" style={{ background: "rgba(99,102,241,0.1)" }}>
-            <div
-              className="h-full transition-all duration-300"
-              style={{
-                width: `${modelProgress}%`,
-                background: "linear-gradient(90deg, #6366f1 0%, #3b82f6 100%)",
-              }}
-            />
-          </div>
-        )}
-        {modelStatus === "ready" && (
-          <div className="h-1" style={{ background: "linear-gradient(90deg, #6366f1 0%, #3b82f6 100%)" }} />
-        )}
-        <div className="flex items-center justify-between px-4 py-3 gap-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <div
-              className="w-2 h-2 rounded-full flex-shrink-0"
-              style={{
-                background:
-                  modelStatus === "ready"
-                    ? "#22c55e"
-                    : modelStatus === "loading"
-                    ? "#f59e0b"
-                    : modelStatus === "error"
-                    ? "#ef4444"
-                    : "#94a3b8",
-              }}
-            />
-            <span className="text-sm font-medium truncate" style={{ color: "#475569" }}>
-              {modelStatus === "ready"
-                ? t.modelReady
-                : modelStatus === "loading"
-                ? modelMessage || t.modelLoading
-                : modelStatus === "error"
-                ? t.modelError
-                : webgpuSupported ? "SmolVLM 256M (WebGPU)" : "SmolVLM 256M (CPU)"}
-            </span>
-            {modelStatus === "loading" && modelProgress > 0 && (
-              <span className="text-xs flex-shrink-0" style={{ color: "#94a3b8" }}>
-                {modelProgress}%
-              </span>
-            )}
-          </div>
-          {modelStatus !== "loading" && (
-            <button
-              onClick={loadModel}
-              disabled={false}
-              className="flex-shrink-0 rounded-xl px-3 py-1.5 text-xs font-semibold text-white transition-opacity duration-150 disabled:opacity-40"
-              style={{ background: "linear-gradient(135deg, #6366f1 0%, #3b82f6 100%)" }}
-              onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.opacity = "0.85")}
-              onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.opacity = "1")}
-            >
-              {modelStatus === "ready" ? "재로드" : t.loadModel}
-            </button>
-          )}
-        </div>
       </div>
 
       {/* YouTube URL Input */}
@@ -324,10 +196,10 @@ export default function VideosPage() {
               </p>
               <button
                 onClick={captureAndAnalyze}
-                disabled={analyzing || modelStatus !== "ready"}
+                disabled={analyzing}
                 className="w-full rounded-xl py-2.5 text-sm font-semibold text-white transition-opacity duration-150 disabled:opacity-40"
                 style={{ background: "linear-gradient(135deg, #f97316 0%, #ef4444 100%)" }}
-                onMouseEnter={(e) => { if (!analyzing && modelStatus === "ready") (e.currentTarget as HTMLElement).style.opacity = "0.85"; }}
+                onMouseEnter={(e) => { if (!analyzing) (e.currentTarget as HTMLElement).style.opacity = "0.85"; }}
                 onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.opacity = "1")}
               >
                 {analyzing ? `⏳ ${t.analyzing}` : `🔍 ${t.analyzeFrame}`}
@@ -398,16 +270,12 @@ export default function VideosPage() {
               )}
 
               <div className="flex-1">
-                <div className="flex items-center justify-between mb-1.5">
-                  <p className="text-xs font-semibold" style={{ color: "#475569" }}>
-                    {t.analysisResult}
-                  </p>
-                  {tokenCount > 0 && (
-                    <span className="text-xs" style={{ color: "#94a3b8" }}>
-                      {tokenCount} tokens
-                    </span>
-                  )}
-                </div>
+                <p className="text-xs font-semibold mb-1.5" style={{ color: "#475569" }}>
+                  {t.analysisResult}
+                </p>
+                {analyzeError && (
+                  <p className="text-xs mb-1" style={{ color: "#ef4444" }}>⚠️ {analyzeError}</p>
+                )}
                 <div
                   className="rounded-xl p-3 text-xs leading-relaxed overflow-y-auto"
                   style={{
@@ -421,14 +289,10 @@ export default function VideosPage() {
                 >
                   {result || (
                     <span style={{ color: "#94a3b8" }}>
-                      {modelStatus === "ready"
-                        ? "영상을 재생하다 일시정지 후 화면 분석을 눌러주세요"
-                        : modelStatus === "loading"
-                        ? "모델 로딩 중..."
-                        : "모델 로드 버튼을 눌러 AI를 준비하세요"}
+                      {analyzing ? "분석 중..." : "영상을 재생하다 일시정지 후 화면 분석을 눌러주세요"}
                     </span>
                   )}
-                  {analyzing && <span className="animate-pulse">▋</span>}
+                  {analyzing && !result && <span className="animate-pulse">▋</span>}
                 </div>
               </div>
             </div>

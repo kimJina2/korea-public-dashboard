@@ -97,12 +97,20 @@ export async function POST(request: Request) {
       return Response.json({ error: "다운로드 파일을 찾을 수 없습니다" }, { status: 500 });
     }
 
-    console.log("[ytdl] done:", fs.statSync(outputPath).size, "bytes");
-    return Response.json({
-      id,
-      filename: `${id}.mp4`,
-      title,
-      videoUrl: `/api/youtube/video/${id}.mp4`,
+    const fileSize = fs.statSync(outputPath).size;
+    console.log("[ytdl] done:", fileSize, "bytes");
+
+    // Return video binary directly — Vercel serverless /tmp is not shared across
+    // function instances, so a separate /api/youtube/video route would 404.
+    const videoBuffer = fs.readFileSync(outputPath);
+    fs.unlinkSync(outputPath);
+
+    return new Response(videoBuffer, {
+      headers: {
+        "Content-Type": "video/mp4",
+        "Content-Length": String(fileSize),
+        "X-Video-Title": encodeURIComponent(title),
+      },
     });
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
