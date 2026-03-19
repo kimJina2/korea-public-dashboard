@@ -34,6 +34,15 @@ export default function DashboardPage() {
       borderColor: "rgba(16,185,129,0.2)",
       accentColor: "#059669",
     },
+    {
+      href: "/dashboard/subway",
+      emoji: "🚇",
+      title: t.cardSubwayTitle,
+      description: t.cardSubwayDesc,
+      glowColor: "rgba(99,102,241,0.08)",
+      borderColor: "rgba(99,102,241,0.2)",
+      accentColor: "#6366f1",
+    },
   ];
 
   return (
@@ -101,6 +110,7 @@ export default function DashboardPage() {
           <li>• {t.dataSourceAir}</li>
           <li>• {t.dataSourceWeather}</li>
           <li>• {t.dataSourceTransit}</li>
+          <li>• {t.dataSourceSubway}</li>
         </ul>
       </div>
     </div>

@@ -1423,11 +1423,12 @@ export function BoardClient({ currentUser }: { currentUser: CurrentUser }) {
         <p className="text-xs mb-3 leading-relaxed" style={{ color: "#475569" }}>
           {t.boardSidebarDesc}
         </p>
-        <div className="grid gap-2 sm:grid-cols-3 mb-4">
+        <div className="grid gap-2 grid-cols-2 sm:grid-cols-4 mb-4">
           {[
-            { emoji: "🌫️", title: t.airQuality, desc: t.dataSourceAirShort, color: "#3b82f6" },
-            { emoji: "🌤️", title: t.weather, desc: t.dataSourceWeatherShort, color: "#d97706" },
-            { emoji: "🚌", title: t.transit, desc: t.dataSourceTransitShort, color: "#059669" },
+            { emoji: "🌫️", title: t.airQuality, desc: t.dataSourceAirShort, color: "#3b82f6", url: "apis.data.go.kr" },
+            { emoji: "🌤️", title: t.weather, desc: t.dataSourceWeatherShort, color: "#d97706", url: "apis.data.go.kr" },
+            { emoji: "🚌", title: t.transit, desc: t.dataSourceTransitShort, color: "#059669", url: "apis.data.go.kr" },
+            { emoji: "🚇", title: t.subway, desc: t.dataSourceSubwayShort, color: "#6366f1", url: "data.seoul.go.kr" },
           ].map((s) => (
             <div
               key={s.title}
@@ -1439,7 +1440,7 @@ export function BoardClient({ currentUser }: { currentUser: CurrentUser }) {
                 <span className="text-xs font-semibold" style={{ color: s.color }}>{s.title}</span>
               </div>
               <p className="text-xs" style={{ color: "#94a3b8" }}>{s.desc}</p>
-              <p className="text-xs mt-0.5" style={{ color: "#cbd5e1" }}>apis.data.go.kr</p>
+              <p className="text-xs mt-0.5" style={{ color: "#cbd5e1" }}>{s.url}</p>
             </div>
           ))}
         </div>

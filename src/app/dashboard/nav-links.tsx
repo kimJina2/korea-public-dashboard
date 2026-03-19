@@ -10,7 +10,7 @@ export function NavDropdown() {
   const pathname = usePathname();
   const { t } = useLanguage();
 
-  const dashboardPaths = ["/dashboard/air-quality", "/dashboard/weather", "/dashboard/transit"];
+  const dashboardPaths = ["/dashboard/air-quality", "/dashboard/weather", "/dashboard/transit", "/dashboard/subway"];
   const isActive =
     pathname === "/dashboard" || dashboardPaths.some((p) => pathname.startsWith(p));
 
@@ -53,6 +53,7 @@ export function NavDropdown() {
             <DropdownItem href="/dashboard/air-quality">🌫️ {t.airQuality}</DropdownItem>
             <DropdownItem href="/dashboard/weather">🌤️ {t.weather}</DropdownItem>
             <DropdownItem href="/dashboard/transit">🚌 {t.transit}</DropdownItem>
+            <DropdownItem href="/dashboard/subway">🚇 {t.subway}</DropdownItem>
           </div>
         </div>
       )}
@@ -150,8 +151,6 @@ function BottomNavLink({ href, emoji, labelKey }: { href: string; emoji: string;
 
 // 하단 탭 바 (layout에서 사용)
 export function BottomNavBar() {
-  const { t } = useLanguage();
-
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-50 sm:hidden"
@@ -166,6 +165,7 @@ export function BottomNavBar() {
       <div className="flex h-16 items-center justify-around">
         <BottomNavLink href="/dashboard" emoji="🏠" labelKey="home" />
         <BottomNavLink href="/dashboard/air-quality" emoji="📊" labelKey="todayInfo" />
+        <BottomNavLink href="/dashboard/subway" emoji="🚇" labelKey="subway" />
         <BottomNavLink href="/dashboard/videos" emoji="🎬" labelKey="myVideos" />
         <BottomNavLink href="/dashboard/board" emoji="📋" labelKey="board" />
       </div>

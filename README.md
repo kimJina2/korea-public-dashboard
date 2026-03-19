@@ -1,6 +1,6 @@
 # 🇰🇷 한국 공공데이터 대시보드
 
-한국 공공데이터포털(data.go.kr) API를 활용한 실시간 대기질, 날씨, 교통 정보 대시보드 서비스입니다.
+한국 공공데이터포털(data.go.kr) 및 서울시 열린데이터 광장 API를 활용한 실시간 대기질, 날씨, 교통, 지하철 정보 대시보드 서비스입니다.
 
 ## 주요 기능
 
@@ -9,6 +9,7 @@
 | 🌫️ **대기질** | 전국 시도별 PM10, PM2.5, 오존, 이산화질소, 통합대기환경지수 실시간 제공 |
 | 🌤️ **날씨** | 기상청 단기예보 기반 기온, 강수확률, 습도, 풍속 등 3시간 간격 예보 |
 | 🚌 **버스 노선** | 전국 주요 도시 시내버스 노선 번호, 운행 시간, 배차 간격 정보 |
+| 🚇 **서울 지하철 실시간** | 서울 지하철 1~9호선 실시간 열차 위치 · 운행 상태 · 급행 여부 시각화 |
 
 ## 기술 스택
 
@@ -44,8 +45,14 @@ AUTH_GOOGLE_SECRET=<Google OAuth Client Secret>
 TURSO_DATABASE_URL=libsql://<database>.turso.io
 TURSO_AUTH_TOKEN=<token>
 
-# 공공데이터포털 API 키
+# 공공데이터포털 API 키 (대기질 / 날씨 / 교통)
 DATA_GO_KR_API_KEY=<API 키 (디코딩된 형태)>
+
+# 서울시 열린데이터 광장 API 키 (지하철)
+SEOUL_SUBWAY_API_KEY=<API 키>
+
+# AI 영상 분석 (Groq)
+GROQ_API_KEY=<Groq API 키>
 ```
 
 ### 3. DB 초기화 및 시드
@@ -79,11 +86,20 @@ src/
 │   │   ├── page.tsx              # 대시보드 홈
 │   │   ├── air-quality/page.tsx  # 대기질 페이지
 │   │   ├── weather/page.tsx      # 날씨 페이지
-│   │   └── transit/page.tsx      # 교통 페이지
+│   │   ├── transit/page.tsx      # 교통 페이지
+│   │   ├── subway/
+│   │   │   ├── page.tsx          # 지하철 실시간 페이지 (SVG 노선도)
+│   │   │   └── station-data.ts   # 1~9호선 역 목록 · 분기선 데이터
+│   │   ├── videos/page.tsx       # 나만의영상 페이지 (YouTube + AI 분석)
+│   │   └── board/                # 게시판 (목록, 상세, 작성)
 │   ├── api/
 │   │   ├── air-quality/route.ts  # 대기질 API
 │   │   ├── weather/route.ts      # 날씨 API
-│   │   └── transit/route.ts      # 교통 API
+│   │   ├── transit/route.ts      # 교통 API
+│   │   ├── subway/route.ts       # 지하철 실시간 API (서울시 열린데이터)
+│   │   └── youtube/
+│   │       ├── download/route.ts # YouTube 다운로드 (yt-dlp)
+│   │       └── analyze/route.ts  # AI 영상 분석 (Groq)
 │   └── auth/[...nextauth]/       # NextAuth 핸들러
 ├── auth.ts                       # NextAuth 설정
 ├── proxy.ts                       # 라우트 보호 (Next.js 미들웨어)
@@ -120,13 +136,24 @@ VALUES ('user@example.com', '사용자 이름', datetime('now'), 1);
 
 ## 공공데이터 API
 
-| 서비스 | API 엔드포인트 | 갱신 주기 |
-|--------|--------------|---------|
-| 대기질 | 한국환경공단 에어코리아 실시간 측정정보 조회 | 5분 |
-| 날씨 | 기상청 단기예보 조회서비스 | 1시간 |
-| 교통 | 국토교통부 버스노선 조회서비스 | 1시간 |
+| 서비스 | 출처 | 갱신 주기 |
+|--------|------|---------|
+| 대기질 | 한국환경공단 에어코리아 실시간 측정정보 조회 (apis.data.go.kr) | 5분 |
+| 날씨 | 기상청 단기예보 조회서비스 (apis.data.go.kr) | 1시간 |
+| 교통 | 국토교통부 버스노선 조회서비스 (apis.data.go.kr) | 1시간 |
+| 지하철 | 서울시 열린데이터 광장 실시간 지하철위치정보 (data.seoul.go.kr) | 30초 |
 
-API 키는 [공공데이터포털](https://www.data.go.kr)에서 신청할 수 있습니다.
+- 대기질 / 날씨 / 교통 API 키: [공공데이터포털](https://www.data.go.kr)에서 신청
+- 지하철 API 키: [서울시 열린데이터 광장](https://data.seoul.go.kr)에서 신청
+
+### 서울 지하철 실시간 기능 상세
+
+- **지원 노선**: 1호선 ~ 9호선 (총 9개 노선)
+- **SVG 노선도**: 역 순서 시각화 + 열차 마커 (상행/하행 위치 표시)
+- **분기 노선**: 2호선 성수지선·신정지선, 5호선 마천지선 지원
+- **열차 상태**: 운행중 / 진입 / 도착 / 출발 / 전역출발 / 급행통과
+- **필터**: 상행 / 하행 / 전체 방향별 필터링
+- **자동 갱신**: 30초마다 자동 새로고침
 
 ## Vercel 배포
 
@@ -139,6 +166,8 @@ Vercel 환경 변수에 아래 값을 설정해야 합니다:
 - `TURSO_DATABASE_URL`
 - `TURSO_AUTH_TOKEN`
 - `DATA_GO_KR_API_KEY`
+- `SEOUL_SUBWAY_API_KEY`
+- `GROQ_API_KEY`
 
 > Google OAuth 리다이렉트 URI에 Vercel 배포 URL을 추가해야 합니다.
 > 예: `https://your-app.vercel.app/api/auth/callback/google`

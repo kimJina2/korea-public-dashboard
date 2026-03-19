@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useTransit } from "@/hooks/use-transit";
 import { useLanguage } from "@/contexts/language-context";
 
-const CITIES = ["부산", "대구", "인천", "광주", "대전", "울산", "경기"];
+const CITIES = ["경기", "부산", "대구", "인천", "광주", "대전", "울산"];
 
 const ROUTE_TYPE: Record<string, string> = {
   "11": "간선",
@@ -20,7 +20,7 @@ const ROUTE_TYPE: Record<string, string> = {
 };
 
 export default function TransitPage() {
-  const [city, setCity] = useState("부산");
+  const [city, setCity] = useState("경기");
   const [page, setPage] = useState(1);
   const { items, totalCount, error, isLoading } = useTransit(city, page);
   const { t } = useLanguage();
